@@ -117,6 +117,7 @@ function processBooking(data) {
     throw new Error("Hiányzó adatok.");
   }
 
+  var orderId = generateOrderId_();
   /* ===== EMAIL FORMÁTUM ELLENŐRZÉS ===== */
 
   var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -145,13 +146,7 @@ function processBooking(data) {
       medListForLog += "\n";
     });
 
-    gdprSheet.appendRow([
-      new Date(),
-      data.userName,
-      data.userEmail,
-      medListForLog.trim(),
-      "IGEN"
-    ]);
+    gdprSheet.appendRow([ new Date(), orderId, data.userName, data.userEmail, medListForLog.trim(), "IGEN" ]);
   }
 
   var listText = "";
@@ -183,13 +178,14 @@ function processBooking(data) {
     `;
   });
 
-  MailApp.sendEmail(
-    "recept.gyogyszertarmor@gmail.com",
-    "ÚJ FOGLALÁS",
-    listText +
-    "Név: " + data.userName + "\n" +
-    "Email: " + data.userEmail
-  );
+MailApp.sendEmail(
+  "recept.gyogyszertarmor@gmail.com",
+  "ÚJ FOGLALÁS - " + orderId,
+  "Rendelés azonosító: " + orderId + "\n\n" +
+  listText +
+  "Név: " + data.userName + "\n" +
+  "Email: " + data.userEmail
+);
 
   var htmlBodyCustomer = `
 <div style="font-family:Segoe UI, Arial, sans-serif; max-width:600px; margin:auto; padding:20px; border:1px solid #ddd; border-radius:10px;">
@@ -197,6 +193,11 @@ function processBooking(data) {
   <h2 style="color:#28a745; text-align:center;">
     Receptfoglalását rögzítettük
   </h2>
+
+  <p style="text-align:center; font-size:15px; margin-top:10px;">
+    <strong>Rendelés azonosító:</strong><br>
+    <span style="font-size:18px; color:#000;">${orderId}</span>
+  </p>
 
   <p>Tisztelt <strong>${data.userName}</strong>!</p>
 
@@ -234,12 +235,11 @@ function processBooking(data) {
 </div>
 `;
 
-  MailApp.sendEmail({
-    to: data.userEmail,
-    subject: "Receptfoglalás rögzítve – Szent György Gyógyszertár",
-    htmlBody: htmlBodyCustomer
-  });
-}
+MailApp.sendEmail({
+  to: data.userEmail,
+  subject: "Receptfoglalás rögzítve – " + orderId,
+  htmlBody: htmlBodyCustomer
+});
 
 
 /* ===== AUTOMATIKUS 30 NAPOS TÖRLÉS ===== */
@@ -264,5 +264,28 @@ function autoDeleteOldBookings() {
         sheet.deleteRow(i + 1);
       }
     }
+  }
+}
+function generateOrderId_() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const tz = Session.getScriptTimeZone();
+    const today = Utilities.formatDate(new Date(), tz, "yyyyMMdd");
+
+    const lastDate = props.getProperty("ORDER_SEQ_DATE");
+    let seq = parseInt(props.getProperty("ORDER_SEQ_NUM") || "0", 10);
+
+    if (lastDate !== today) seq = 0;
+    seq += 1;
+
+    props.setProperty("ORDER_SEQ_DATE", today);
+    props.setProperty("ORDER_SEQ_NUM", String(seq));
+
+    return `SGY-${today}-${String(seq).padStart(4, "0")}`;
+  } finally {
+    lock.releaseLock();
   }
 }
