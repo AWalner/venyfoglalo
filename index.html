@@ -621,66 +621,89 @@ function prefillCancelFromUrl() {
 
 window.addEventListener("load", prefillCancelFromUrl);
 
+function getQueryParam(name) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(name);
+}
+
+function initCancelUI() {
+  const orderId = getQueryParam("orderId");
+  if (!orderId) return; // NINCS törlés mód
+
+  const container = document.getElementById("cancelContainer");
+  const orderInput = document.getElementById("cancelOrderId");
+
+  if (!container || !orderInput) return;
+
+  container.style.display = "block";
+  orderInput.value = orderId;
+}
+
+window.addEventListener("load", initCancelUI);
+
 function requestCancel() {
-  var orderId = document.getElementById("cancelOrderId").value.trim();
-  var email = document.getElementById("cancelEmail").value.trim();
-  var confirm = document.getElementById("cancelConfirm").checked;
-  var resultEl = document.getElementById("cancelResult");
+  const orderId = document.getElementById("cancelOrderId").value.trim();
+  const email = document.getElementById("cancelEmail").value.trim();
+  const confirm = document.getElementById("cancelConfirm").checked;
+  const result = document.getElementById("cancelResult");
 
-  resultEl.textContent = "";
-
-  if (!orderId) {
-    resultEl.textContent = "Hiányzik az OrderID. Kérlek az emailben lévő törlés linket használd.";
-    return;
-  }
+  result.textContent = "";
 
   if (!email) {
-    resultEl.textContent = "Kérlek add meg az email címet.";
+    result.textContent = "Kérlek add meg az email címet.";
     return;
   }
 
   if (!confirm) {
-    resultEl.textContent = "Kérlek pipáld be, hogy biztosan törölni szeretnéd.";
+    result.textContent = "Kérlek erősítsd meg a törlést.";
     return;
   }
 
-  resultEl.textContent = "Törlés folyamatban...";
+  result.textContent = "Törlés folyamatban…";
 
   google.script.run
-    .withSuccessHandler(function(res) {
-      if (res && res.ok) {
-        resultEl.textContent = res.message || "Sikeres törlés.";
-      } else {
-        resultEl.textContent = (res && res.message) ? res.message : "Nem sikerült törölni.";
-      }
+    .withSuccessHandler(res => {
+      result.textContent = res.message || "Sikeres törlés.";
     })
-    .withFailureHandler(function(err) {
-      resultEl.textContent = "Hiba történt: " + (err && err.message ? err.message : err);
+    .withFailureHandler(err => {
+      result.textContent = "Hiba történt.";
     })
-    .cancelBooking({ orderId: orderId, email: email });
+    .cancelBooking({ orderId, email });
 }
 
 </script>
 
-<hr style="margin: 30px 0;">
+<!-- TÖRLÉS – ALAPBÓL REJTETT -->
+<div id="cancelContainer"
+     style="display:none; text-align:center; margin-top:40px;">
 
-<div id="cancelSection"></div>
-<h3>Foglalás törlése</h3>
-<p>Ha törölni szeretnéd a foglalásod, add meg az email címedet. (Az OrderID-t a link automatikusan kitölti.)</p>
+  <h3>Foglalás törlése</h3>
 
-<label>OrderID</label><br>
-<input type="text" id="cancelOrderId" style="width: 100%; max-width: 420px;"><br><br>
+  <p style="max-width:420px; margin:0 auto 15px;">
+    Ha törölni szeretnéd a foglalásod, add meg az email címedet.
+  </p>
 
-<label>Email</label><br>
-<input type="email" id="cancelEmail" placeholder="pl. te@email.hu" style="width: 100%; max-width: 420px;"><br><br>
+  <label><strong>Rendelésszám</strong></label><br>
+  <input type="text"
+         id="cancelOrderId"
+         readonly
+         style="width:100%; max-width:420px; text-align:center;"><br><br>
 
-<label>
-  <input type="checkbox" id="cancelConfirm">
-  Biztosan törölni szeretném a foglalást.
-</label><br><br>
+  <label><strong>Email</strong></label><br>
+  <input type="email"
+         id="cancelEmail"
+         style="width:100%; max-width:420px; text-align:center;"><br><br>
 
-<button type="button" onclick="requestCancel()">Foglalás törlése</button>
+  <label style="display:inline-block; text-align:left;">
+    <input type="checkbox" id="cancelConfirm">
+    Biztosan törölni szeretném a foglalást
+  </label><br><br>
 
-<p id="cancelResult" style="margin-top: 10px;"></p>
+  <button type="button" onclick="requestCancel()">
+    Foglalás törlése
+  </button>
+
+  <p id="cancelResult" style="margin-top:12px;"></p>
+</div>
 </body>
 </html>
