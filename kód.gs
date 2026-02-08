@@ -1,78 +1,134 @@
 function doGet(e) {
 
-  // Adatkezelési oldal
   if (e && e.parameter && e.parameter.page == "adatkezeles") {
     return HtmlService.createHtmlOutputFromFile('adatkezeles')
       .setTitle('Adatkezelési tájékoztató');
   }
 
-  // Főoldal
   return HtmlService.createTemplateFromFile('Index')
     .evaluate()
     .setTitle('Patikai Vényfoglaló')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
-
-
+function getAppUrl_() {
+  return ScriptApp.getService().getUrl();
+}
 /* ============================= */
 /* ===== SPAM VÉDELEM RÉSZ ===== */
 /* ============================= */
 
-/* 10 perc / max 4 foglalás / email */
-
 function isRateLimited(email) {
-
   var cache = CacheService.getScriptCache();
   var key = "booking_" + email.toLowerCase();
-  var windowSeconds = 600; // 10 perc
+  var windowSeconds = 600;
   var maxAttempts = 4;
 
   var existing = cache.get(key);
-
   if (existing) {
     var count = parseInt(existing, 10);
-
-    if (count >= maxAttempts) {
-      return true;
-    } else {
-      cache.put(key, (count + 1).toString(), windowSeconds);
-      return false;
-    }
+    if (count >= maxAttempts) return true;
+    cache.put(key, String(count + 1), windowSeconds);
+    return false;
   }
 
   cache.put(key, "1", windowSeconds);
   return false;
 }
 
+// ===== KERESÉS: ékezet-eltávolítás + token match + cache =====
 
-/* ===== GYÓGYSZER KERESÉS ===== */
-
-function getUniqueMedicines(searchQuery) {
-  var ss = SpreadsheetApp.openById("1nFZqVz1ngIToHZGoO29ExH2sLTjsMy8nCBMETf4YHeU");
-  var sheet = ss.getSheets()[0];
-  var data = sheet.getRange("A2:D" + sheet.getLastRow()).getValues();
-
-  searchQuery = searchQuery.toLowerCase();
-  var results = [];
-  var seen = {};
-
-  for (var i = 0; i < data.length; i++) {
-    var name = data[i][0];
-    var kiadhatosag = data[i][3];
-
-    if (name && kiadhatosag && name.toLowerCase().includes(searchQuery)) {
-      if (!seen[name]) {
-        results.push(name);
-        seen[name] = true;
-      }
-    }
-    if (results.length > 8) break;
-  }
-
-  return results;
+function normalizeHu_(s) {
+  return String(s || "")
+    .toLowerCase()
+    .normalize("NFD")                 // ékezetek szétbontása
+    .replace(/[\u0300-\u036f]/g, "")  // ékezet jelek törlése
+    .replace(/[^a-z0-9\s]/g, " ")     // írásjelek -> szóköz
+    .replace(/\s+/g, " ")            // több szóköz összevonás
+    .trim();
 }
 
+function getMedicinesIndex_() {
+  // Cache 20 percre (nagy gyorsulás)
+  var cache = CacheService.getScriptCache();
+  var cached = cache.get("MED_INDEX_V1");
+  if (cached) {
+    try { return JSON.parse(cached); } catch (e) {}
+  }
 
+  var ss = SpreadsheetApp.openById("1nFZqVz1ngIToHZGoO29ExH2sLTjsMy8nCBMETf4YHeU");
+  var sheet = ss.getSheets()[0];
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  // Csak az A (név) és D (kiadhatóság) oszlop kell
+  var values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+
+  var seen = {};
+  var index = [];
+  for (var i = 0; i < values.length; i++) {
+    var name = values[i][0];
+    var kiadhatosag = values[i][3];
+    if (!name || !kiadhatosag) continue;
+
+    if (!seen[name]) {
+      seen[name] = true;
+      index.push({
+        name: name,
+        norm: normalizeHu_(name)
+      });
+    }
+  }
+
+  cache.put("MED_INDEX_V1", JSON.stringify(index), 20 * 60);
+  return index;
+}
+
+/* ===== GYÓGYSZER KERESÉS (JAVÍTOTT) ===== */
+function getUniqueMedicines(searchQuery) {
+  var q = normalizeHu_(searchQuery);
+
+  // 2 karakter alatt ne keressünk (gyorsaság)
+  if (!q || q.length < 2) return [];
+
+  var tokens = q.split(" ").filter(Boolean);
+  if (tokens.length === 0) return [];
+
+  var index = getMedicinesIndex_();
+
+  // Token-alapú találat + "prefix" bónusz
+  var scored = [];
+  for (var i = 0; i < index.length; i++) {
+    var item = index[i];
+    var hay = item.norm;
+
+    // minden tokennek szerepelnie kell
+    var ok = true;
+    for (var t = 0; t < tokens.length; t++) {
+      if (hay.indexOf(tokens[t]) === -1) { ok = false; break; }
+    }
+    if (!ok) continue;
+
+    // pontozás: prefix + rövidebb név előny
+    var score = 0;
+    if (hay.indexOf(q) === 0) score += 100;           // teljes lekérdezés prefix
+    if (hay.indexOf(tokens[0]) === 0) score += 40;    // első token prefix
+    score += Math.max(0, 30 - hay.length);            // rövidebb név előny
+
+    scored.push({ name: item.name, score: score });
+  }
+
+  scored.sort(function (a, b) {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.name.localeCompare(b.name, "hu");
+  });
+
+  // max 8 találat
+  var out = [];
+  for (var k = 0; k < scored.length && out.length < 8; k++) {
+    out.push(scored[k].name);
+  }
+  return out;
+}
 function getDetails(medName) {
   var ss = SpreadsheetApp.openById("1nFZqVz1ngIToHZGoO29ExH2sLTjsMy8nCBMETf4YHeU");
   var sheet = ss.getSheets()[0];
@@ -88,83 +144,40 @@ function getDetails(medName) {
       });
     }
   }
-
   return variations;
 }
 
-
 /* ======================================= */
-/* ===== FOGLALÁS FELDOLGOZÁS (BŐVÍTETT) = */
+/* ===== FOGLALÁS FELDOLGOZÁS ===== */
 /* ======================================= */
 
 function processBooking(data) {
 
-  /* ===== SZERVER OLDALI SPAM VÉDELEM ===== */
-
-  if (data.honeypot && data.honeypot !== "") {
-    throw new Error("Spam detected.");
-  }
-
-  if (!data.formTime || data.formTime < 3000) {
-    throw new Error("Túl gyors beküldés.");
-  }
-
-  if (isRateLimited(data.userEmail)) {
-    throw new Error("10 percen belül maximum 4 foglalás engedélyezett.");
-  }
-
-  if (!data.userName || !data.userEmail || !data.medicines || data.medicines.length === 0) {
-    throw new Error("Hiányzó adatok.");
-  }
-
-  var orderId = generateOrderId_();
-  /* ===== EMAIL FORMÁTUM ELLENŐRZÉS ===== */
+  if (data.honeypot && data.honeypot !== "") throw new Error("Spam.");
+  if (!data.formTime || data.formTime < 3000) throw new Error("Túl gyors.");
+  if (isRateLimited(data.userEmail)) throw new Error("Limit túllépve.");
+  if (!data.userName || !data.userEmail || !data.medicines || data.medicines.length === 0)
+    throw new Error("Hiányzó adat.");
 
   var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailPattern.test(data.userEmail)) throw new Error("Érvénytelen email.");
 
-  if (!emailPattern.test(data.userEmail)) {
-    throw new Error("Érvénytelen email cím.");
-  }
+  var orderId = generateOrderId_();
 
   var ss = SpreadsheetApp.openById("1nFZqVz1ngIToHZGoO29ExH2sLTjsMy8nCBMETf4YHeU");
-  var gdprSheet = ss.getSheetByName("GDPR_naplo");
-
-  if (gdprSheet && data.medicines.length > 0) {
-
-    var medListForLog = "";
-
-    data.medicines.forEach(function(med, index) {
-
-      medListForLog += (index + 1) + ". " + med.name +
-                       " – " + med.pack +
-                       " – " + med.quantity;
-
-      if (med.custom && med.custom.trim() !== "") {
-        medListForLog += " | Egyedi megnevezés: " + med.custom;
-      }
-
-      medListForLog += "\n";
-    });
-
-    gdprSheet.appendRow([ new Date(), orderId, data.userName, data.userEmail, medListForLog.trim(), "IGEN" ]);
-  }
+  var sheet = ss.getSheetByName("GDPR_naplo");
 
   var listText = "";
   var listHtml = "";
 
   data.medicines.forEach(function(med, index) {
-
     listText += (index + 1) + ". " + med.name +
-                "\nKiszerelés: " + med.pack +
-                "\nMennyiség: " + med.quantity +
-                "\nHatóanyag: " + med.hatoanyag +
-                "\nKategória: " + med.status;
-
-    if (med.custom && med.custom.trim() !== "") {
-      listText += "\nEgyedi megnevezés: " + med.custom;
-    }
-
-    listText += "\n\n";
+      "\nKiszerelés: " + med.pack +
+      "\nMennyiség: " + med.quantity +
+      "\nHatóanyag: " + med.hatoanyag +
+      "\nKategória: " + med.status +
+      (med.custom ? "\nEgyedi megnevezés: " + med.custom : "") +
+      "\n\n";
 
     listHtml += `
       <div style="margin-bottom:15px;">
@@ -173,117 +186,116 @@ function processBooking(data) {
         Mennyiség: ${med.quantity}<br>
         Hatóanyag: ${med.hatoanyag}<br>
         Kategória: ${med.status}<br>
-        ${med.custom && med.custom.trim() !== "" ? "<em>Egyedi megnevezés: " + med.custom + "</em><br>" : ""}
-      </div>
-    `;
+        ${med.custom ? "Egyedi megnevezés: " + med.custom : ""}
+      </div>`;
   });
 
-MailApp.sendEmail(
-  "recept.gyogyszertarmor@gmail.com",
-  "ÚJ FOGLALÁS - " + orderId,
-  "Rendelés azonosító: " + orderId + "\n\n" +
-  listText +
-  "Név: " + data.userName + "\n" +
-  "Email: " + data.userEmail
-);
+  sheet.appendRow([
+    new Date(),
+    orderId,
+    data.userName,
+    data.userEmail,
+    listText.trim(),
+    "IGEN",
+    "",
+    ""
+  ]);
+
+  MailApp.sendEmail(
+    "recept.gyogyszertarmor@gmail.com",
+    "ÚJ FOGLALÁS - " + orderId,
+    "Rendelésszám: " + orderId + "\n\n" + listText +
+    "Név: " + data.userName + "\nEmail: " + data.userEmail
+  );
+
+  var baseUrl = ScriptApp.getService().getUrl();
+  var cancelUrl = baseUrl + "?orderId=" + encodeURIComponent(orderId);
+
+  var cancelLinkHtml =
+    '<p style="text-align:center; margin-bottom:20px;">' +
+    '<b>Foglalás törlése (rendelésszám alapján)</b><br>' +
+    '<a href="' + cancelUrl + '" style="color:#dc3545; font-weight:bold;">' +
+    'Kattintson ide a foglalás törléséhez</a></p>';
 
   var htmlBodyCustomer = `
 <div style="font-family:Segoe UI, Arial, sans-serif; max-width:600px; margin:auto; padding:20px; border:1px solid #ddd; border-radius:10px;">
-  
-  <h2 style="color:#28a745; text-align:center;">
-    Receptfoglalását rögzítettük
-  </h2>
+${cancelLinkHtml}
+<h2 style="color:#28a745; text-align:center;">Receptfoglalását rögzítettük</h2>
 
-  <p style="text-align:center; font-size:15px; margin-top:10px;">
-    <strong>Rendelés azonosító:</strong><br>
-    <span style="font-size:18px; color:#000;">${orderId}</span>
-  </p>
+<p style="text-align:center;"><strong>Rendelésszám:</strong><br>${orderId}</p>
 
-  <p>Tisztelt <strong>${data.userName}</strong>!</p>
+<p>Tisztelt <strong>${data.userName}</strong>!</p>
 
-  <p>
-    Rendszerünkben rögzítettük az alábbi készítmény(ek) foglalását.<br>
-    A foglalás egyelőre <strong>nem minősül megerősített rendelésnek</strong>.<br>
-    Hamarosan visszajelzünk az Ön email címére.
-  </p>
+<p>A foglalás egyelőre nem minősül megerősített rendelésnek.</p>
 
-  <div style="margin:25px 0; padding:15px; background:#eafaf1; border-left:5px solid #28a745; border-radius:6px;">
-    ${listHtml}
-  </div>
-
-  <div style="margin:20px 0; padding:15px; background:#fff3cd; border-left:5px solid #ffc107; border-radius:6px; font-size:14px;">
-    Receptköteles gyógyszert kizárólag <strong>érvényes orvosi recept</strong> 
-    ellenében áll módunkban kiadni.
-  </div>
-
-  <hr style="margin:25px 0;">
-
-  <p style="font-size:14px;">
-    <strong>Szent György Gyógyszertár</strong><br>
-    8060 Mór, Köztársaság tér 1.<br>
-    📞 (06 22) 407 036
-  </p>
-
-  <p style="font-size:14px;">
-    🌐 
-    <a href="https://gyogyszertarmor.hu" target="_blank"
-       style="color:#28a745; font-weight:bold;">
-       www.gyogyszertarmor.hu
-    </a>
-  </p>
-
+<div style="background:#eafaf1; padding:15px; border-left:5px solid #28a745;">
+${listHtml}
 </div>
-`;
 
-MailApp.sendEmail({
-  to: data.userEmail,
-  subject: "Receptfoglalás rögzítve – " + orderId,
-  htmlBody: htmlBodyCustomer
-});
+<hr>
 
+<p><strong>Szent György Gyógyszertár</strong><br>
+8060 Mór, Köztársaság tér 1.<br>
+📞 (06 22) 407 036</p>
 
-/* ===== AUTOMATIKUS 30 NAPOS TÖRLÉS ===== */
+<p><a href="https://gyogyszertarmor.hu">www.gyogyszertarmor.hu</a></p>
+</div>`;
 
-function autoDeleteOldBookings() {
+  MailApp.sendEmail({
+    to: data.userEmail,
+    subject: "Receptfoglalás rögzítve – " + orderId,
+    htmlBody: htmlBodyCustomer
+  });
+
+  return { ok: true, orderId: orderId };
+}
+
+/* ===== TÖRLÉS ===== */
+
+function cancelBooking(data) {
+  var orderId = (data.orderId || "").trim();
+  var email = (data.email || "").trim().toLowerCase();
+
+  if (!orderId || !email) return { ok: false, message: "Hiányzó adat." };
 
   var ss = SpreadsheetApp.openById("1nFZqVz1ngIToHZGoO29ExH2sLTjsMy8nCBMETf4YHeU");
   var sheet = ss.getSheetByName("GDPR_naplo");
+  if (!sheet) return { ok: false, message: "GDPR_naplo munkalap nem található." };
 
-  if (!sheet) return;
+  var values = sheet.getDataRange().getValues();
 
-  var data = sheet.getDataRange().getValues();
-  if (data.length < 2) return;
+  for (var i = 1; i < values.length; i++) {
+    var rowOrderId = String(values[i][1] || "").trim();
+    var rowEmail = String(values[i][3] || "").trim().toLowerCase();
+    var rowStatus = String(values[i][6] || "").trim().toUpperCase(); // 7. oszlop
 
-  var now = new Date();
-  var limit = 30 * 24 * 60 * 60 * 1000;
-
-  for (var i = data.length - 1; i > 0; i--) {
-    var timestamp = data[i][0];
-    if (timestamp instanceof Date) {
-      if (now - timestamp > limit) {
-        sheet.deleteRow(i + 1);
+    if (rowOrderId === orderId && rowEmail === email) {
+      if (rowStatus === "TÖRÖLVE") {
+        return { ok: true, message: "A foglalás már törölve van." };
       }
+      sheet.getRange(i + 1, 7).setValue("TÖRÖLVE");
+      sheet.getRange(i + 1, 8).setValue(new Date());
+      return { ok: true, message: "Foglalás törölve." };
     }
   }
+
+  return { ok: false, message: "Nem található." };
 }
+
+/* ===== ORDER ID ===== */
+
 function generateOrderId_() {
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
-
   try {
     const props = PropertiesService.getScriptProperties();
-    const tz = Session.getScriptTimeZone();
-    const today = Utilities.formatDate(new Date(), tz, "yyyyMMdd");
-
+    const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd");
     const lastDate = props.getProperty("ORDER_SEQ_DATE");
     let seq = parseInt(props.getProperty("ORDER_SEQ_NUM") || "0", 10);
-
     if (lastDate !== today) seq = 0;
-    seq += 1;
-
+    seq++;
     props.setProperty("ORDER_SEQ_DATE", today);
     props.setProperty("ORDER_SEQ_NUM", String(seq));
-
     return `SGY-${today}-${String(seq).padStart(4, "0")}`;
   } finally {
     lock.releaseLock();
