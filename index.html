@@ -1,709 +1,426 @@
 <!DOCTYPE html>
-<html>
+<html lang="hu">
 <head>
- <link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,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">
-<link rel="shortcut icon" type="image/png" href="data:image/png;base64,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">
-
-
-
-
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gyógyszer foglalás</title>
   <style>
-    body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  margin: 0;
- background: #f3f3f3;
-color: #2f3e42;
-
-}
-
-.container {
-  max-width: 520px;
-  margin: 0 auto;
-  padding: 20px 16px 30px 16px;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-  background: white;
-}
-
-    input, select, textarea, button {
-  width: 100%;
-  padding: 12px;
-  margin: 10px 0;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  box-sizing: border-box;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 15px;
-  min-height: 48px;
-}
-.gdpr-box a:hover {
-  background: #e9eef3;
-  padding: 2px 4px;
-  border-radius: 4px;
-}
-input:focus,
-select:focus,
-textarea:focus {
-  outline: none;
-  border-color: #5c9ed6;
-box-shadow: 0 0 0 3px rgba(92,158,214,0.2);
-
-}
-.suggestions {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  overflow: hidden;
-  margin-top: -5px;
-}
-
-.suggestions div {
-  padding: 10px;
-  font-size: 14px;
-}
-
-textarea {
-  min-height: 48px;
-  resize: vertical;
-}
-
-    .info-box { background: #e9eef3; border-left: 5px solid #5c9ed6;; margin-top: 10px; }
-    .suggestions div:hover { background:#f1f1f1; }
-    .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
-    .recept { background: #ffcccc; color: #cc0000; }
-    .veny-nelkul { background: #ccffcc; color: #006600; }
-    button { background: #5c9ed6; color: white; border: none; cursor: pointer; font-weight: bold; }
-    button:disabled { background:#aac9e8; }
-    .gdpr-box { font-size: 12px; color: #555; margin-top: 10px; }
-    .add-btn { background:#5c9ed6; margin-top:10px; }
-    .delete-btn {
-  background: #dc3545;
-  width: auto !important;
-  padding: 6px 12px;
-  font-size: 13px;
-  min-height: auto !important;
-  height: auto !important;
-  margin: 0;
-}
-
-
-    .med-block { border-top:1px solid #ddd; margin-top:20px; padding-top:20px; position:relative; }
-
-    .error-field { border:2px solid #dc3545 !important; background:#fff5f5; }
-    .error-message { color:#dc3545; font-size:13px; margin-top:-6px; margin-bottom:8px; }
-    /* ===== MODERN SUCCESS UI ===== */
-
-.success-wrapper {
-  text-align:center;
-  padding:20px 10px 30px 10px;
-  animation: fadeIn .4s ease;
-}
-
-.success-icon {
-  width:80px;
-  height:80px;
-  margin:20px auto;
-  background:#5c9ed6;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:40px;
-  color:white;
-  box-shadow:0 8px 25px rgba(92,158,214,0.4);
-  animation: pop .4s ease;
-}
-
-@keyframes pop {
-  0% { transform:scale(0.5); opacity:0; }
-  80% { transform:scale(1.1); }
-  100% { transform:scale(1); opacity:1; }
-}
-
-.success-box {
-  background:#e9eef3;
-  border-left:5px solid #5c9ed6;
-  padding:15px;
-  border-radius:8px;
-  margin:20px 0;
-  font-size:14px;
-}
-
-.secondary-btn {
-  background: #e9eef3;
-  border: 2px solid #2f3e42;
-  color: #2f3e42;
-  font-weight: bold;
-  margin-top: 10px;
-}
-
-
-.secondary-btn:hover {
-  background:#2f3e42;
-  color:white;
-}
-.header-card {
-  background: #f8f9fa;
-  padding: 22px;
-  border-radius: 14px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
-  text-align: center;
-  margin-bottom: 25px;
-}
-
-.header-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #222;
-  margin-bottom: 8px;
-}
-
-.header-sub {
-  font-size: 14px;
-  color: #555;
-  line-height: 1.6;
-}
-
-.header-link {
-  display: inline-block;
-  margin-top: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #2f3e42;
-  text-decoration: none;
-  background: #e9eef3;
-  padding: 8px 16px;
-  border-radius: 20px;
-  transition: 0.2s;
-}
-
-}
-
-.header-link:hover {
-  background: #d8e6f2;
-}
-
-.warning-box {
-  margin-top: 15px;
-  padding: 12px 16px;
-  background: #fff3cd;
-  border-left: 4px solid #ffc107;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #856404;
-}
-/* ===== MODERN HEADER ===== */
-
-.header-modern {
-  text-align: center;
-  margin-bottom: 25px;
-}
-
-.header-title {
-  font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 8px;
-  color: #222;
-}
-
-.header-sub {
-  font-size: 14px;
-  color: #666;
-  line-height: 1.5;
-}
-
-.header-warning {
-  margin-top: 15px;
-  font-size: 13px;
-  background: #e9eef3;
-  border-left: 4px solid #5c9ed6;
-  padding: 10px 12px;
-  border-radius: 6px;
-  color: #2f3e42;
-}
-
-.header-link {
-  display: inline-block;
-  margin-top: 14px;
-  padding: 8px 16px;
-  border-radius: 20px;
-  background: #e9eef3;
-  color: #2f3e42;
-  font-weight: 600;
-  text-decoration: none;
-  transition: 0.2s ease;
-}
-
-
-.header-link:hover {
-  text-decoration: underline;
-}
-/* ===== EXTRA MOBIL OPTIMALIZÁLÁS ===== */
-
-@media (max-width: 480px) {
-
-  .container {
-    border-radius: 0;
-    box-shadow: none;
-    padding: 16px 14px 25px 14px;
-  }
-
-  .header-title {
-    font-size: 20px;
-  }
-
-  .header-sub {
-    font-size: 13px;
-  }
-
-  button {
-    font-size: 16px;
-  }
-
-  .delete-btn {
-    font-size: 13px;
-    padding: 8px 10px;
-  }
-
-  .add-btn {
-    font-size: 15px;
-  }
-
-  .success-icon {
-    width: 70px;
-    height: 70px;
-    font-size: 32px;
-  }
-
-  .success-box {
-    font-size: 13px;
-  }
-}
-.med-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-}
-
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 0; background: #f6f7f8; }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 18px; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 18px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+    h1 { margin: 0 0 6px; font-size: 22px; }
+    .muted { color: #6b7280; font-size: 14px; margin: 6px 0 14px; }
+    .topline { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap: wrap; }
+    .pharm { font-size: 14px; color:#374151; }
+    a { color: #0f766e; }
+    .warn { background: #fff7ed; border: 1px solid #fed7aa; color:#9a3412; padding: 10px 12px; border-radius: 12px; font-size: 14px; margin: 12px 0 16px; }
+    .sectionTitle { font-size: 16px; margin: 18px 0 10px; }
+    .row { display:flex; gap:12px; flex-wrap: wrap; }
+    .field { flex: 1 1 240px; }
+    label { display:block; font-size: 13px; color:#374151; margin: 8px 0 6px; }
+    input[type="text"], input[type="email"], input[type="number"], select, textarea {
+      width: 100%; box-sizing: border-box; border: 1px solid #d1d5db; border-radius: 12px; padding: 10px 12px; font-size: 14px; outline: none;
+    }
+    textarea { min-height: 70px; resize: vertical; }
+    input:focus, select:focus, textarea:focus { border-color:#0f766e; box-shadow: 0 0 0 3px rgba(15,118,110,0.12); }
+    .medBlock { border: 1px solid #e5e7eb; border-radius: 14px; padding: 12px; margin: 12px 0; }
+    .medHeader { display:flex; align-items:center; justify-content:space-between; gap: 10px; }
+    .medHeader strong { font-size: 14px; }
+    .btnRow { display:flex; gap:10px; flex-wrap: wrap; margin-top: 14px; }
+    button {
+      border: 0; border-radius: 12px; padding: 10px 14px; font-size: 14px; cursor:pointer;
+      background:#0f766e; color:#fff;
+    }
+    button.secondary { background:#111827; }
+    button.ghost { background:#fff; color:#0f766e; border:1px solid #0f766e; }
+    button.danger { background:#dc2626; }
+    button:disabled { opacity: 0.6; cursor:not-allowed; }
+    .hr { height:1px; background:#e5e7eb; margin: 18px 0; }
+    .center { text-align:center; }
+    .tiny { font-size: 12px; color:#6b7280; margin-top: 6px; }
+    .ok { color:#166534; }
+    .err { color:#b91c1c; }
+    .hidden { display:none; }
   </style>
 </head>
 <body>
-
-<div class="container">
-
-<div class="header-modern">
-
-  <div class="header-title">
-    Gyógyszer foglalás
-  </div>
-
-  <div class="header-sub">
-    <strong>Szent György Gyógyszertár</strong><br>
-    8060 Mór, Köztársaság tér 1.<br>
-    📞 06 22 407 036
-  </div>
-
-  <a href="https://gyogyszertarmor.hu" target="_blank" class="header-link">
-    ← Vissza a honlapra
-  </a>
-
-  <div class="header-warning">
-    Vényköteles gyógyszer kizárólag érvényes orvosi vény ellenében váltható ki.
-  </div>
-
-</div>
-
-
-
-<div id="medicineContainer"></div>
-<button class="add-btn" onclick="addMedicineBlock()">➕ További készítmény hozzáadása</button>
-
-<div style="margin-top:20px;">
-  <label><strong>Az Ön adatai:</strong></label>
-  <input type="text" id="userName" placeholder="Teljes név(kötelező)">
-  <input type="email" id="userEmail" placeholder="Email cím(kötelező)" oninput="this.value=this.value.toLowerCase()">
-
-  <!-- HONEYPOT MEZŐ (REJTETT) -->
-  <input type="text" id="website" style="display:none">
-
-  <div class="gdpr-box">
-    <label style="display:flex; align-items:flex-start; gap:8px;">
-  <span>
-    Hozzájárulok ahhoz, hogy a <strong>Szent György Gyógyszertár</strong>
-    a megadott személyes adataimat kezelje.
-  </span>
-  <input type="checkbox" id="gdprConsent">
-</label>
-
-
-    <div style="margin-top:6px;">
-      <a href="<?= ScriptApp.getService().getUrl() ?>?page=adatkezeles"
-         target="_blank"
-         style="font-size:12px; color:#2f3e42; font-weight:600;"
->
-         Adatkezelési tájékoztató
-      </a>
-    </div>
-  </div>
-
-  <button id="submitBtn" onclick="submitBooking()">Foglalás leadása</button>
-</div>
-
-</div>
-
-<script>
-
-let blockCounter = 0;
-let medicinesData = {};
-let formStartTime = Date.now(); // IDŐALAPÚ VÉDELEM
-
-function addMedicineBlock() {
-  blockCounter++;
-  const container = document.getElementById("medicineContainer");
-
-  const block = document.createElement("div");
-  block.className = "med-block";
-  block.id = "block_" + blockCounter;
-
-  block.innerHTML = `
-    <div class="med-header">
-  <label><strong>Készítmény neve:</strong></label>
-  <button type="button" class="delete-btn" onclick="removeMedicineBlock(${blockCounter})">
-    🗑 Törlés
-  </button>
-</div>
-
-    <input type="text" placeholder="Pl.: Amlodipin" oninput="searchMed(this, ${blockCounter})">
-    <div class="suggestions"></div>
-
-    <label><strong>Válasszon kiszerelést:</strong></label>
-    <select>
-      <option value="">-- Kérjük, válasszon --</option>
-    </select>
-
-    <label><strong>Válasszon mennyiséget:</strong></label>
-    <select class="quantity">
-      <option value="">-- Kérjük, válasszon --</option>
-      ${[...Array(14)].map((_,i)=>`<option>${i+1} doboz</option>`).join("")}
-      ${[...Array(10)].map((_,i)=>`<option>${i+1} ampulla</option>`).join("")}
-    </select>
-
-    <label><strong>Nem találja a listában? Írja be ide (nem kötelező):</strong></label>
-    <textarea class="customInput" placeholder="Gyógyszer pontos neve, ha nem szerepel a listában"></textarea>
-
-    <div class="info-box" style="display:none;"></div>
-
-  `;
-
-  container.appendChild(block);
-}
-
-function removeMedicineBlock(id){
-  const blocks = document.querySelectorAll(".med-block");
-  if(blocks.length <= 1){
-    alert("Legalább egy készítménynek szerepelnie kell.");
-    return;
-  }
-  if(!confirm("Biztosan törölni szeretné ezt a készítményt?")) return;
-
-  const block = document.getElementById("block_" + id);
-  if(block) block.remove();
-  delete medicinesData[id];
-}
-
-function searchMed(input, blockId){
-  const query = input.value.trim();
-  const suggestionsDiv = input.parentNode.querySelector(".suggestions");
-  suggestionsDiv.innerHTML = "";
-  if(query.length < 2) return;
-
-  google.script.run.withSuccessHandler(function(results){
-    suggestionsDiv.innerHTML = "";
-    results.forEach(function(name){
-      const item = document.createElement("div");
-      item.style.padding = "6px";
-      item.style.cursor = "pointer";
-      item.style.borderBottom = "1px solid #eee";
-      item.innerText = name;
-
-      item.onclick = function(){
-        input.value = name;
-        suggestionsDiv.innerHTML = "";
-        loadDetails(name, blockId);
-      };
-      suggestionsDiv.appendChild(item);
-    });
-  }).getUniqueMedicines(query);
-}
-
-function loadDetails(medName, blockId){
-  google.script.run.withSuccessHandler(function(details){
-    medicinesData[blockId] = {};
-    const block = document.getElementById("block_" + blockId);
-    const select = block.querySelector("select");
-    const infoBox = block.querySelector(".info-box");
-
-    select.innerHTML = `<option value="">-- Kérjük, válasszon --</option>`;
-    infoBox.style.display = "none";
-
-    details.forEach(function(item, index){
-      medicinesData[blockId][index] = item;
-      const option = document.createElement("option");
-      option.value = index;
-      option.textContent = item.kiszereles;
-      select.appendChild(option);
-    });
-
-    select.onchange = function(){
-      const selected = medicinesData[blockId][this.value];
-      if(selected){
-        infoBox.style.display = "block";
-        infoBox.innerHTML = `
-          <strong>Hatóanyag:</strong> ${selected.hatoanyag}<br>
-          <strong>Kategória:</strong> ${selected.kiadhatosag}
-        `;
-      } else {
-        infoBox.style.display = "none";
-      }
-    };
-  }).getDetails(medName);
-}
-
-function showError(field,message){
-  field.classList.add("error-field");
-  const msg=document.createElement("div");
-  msg.className="error-message";
-  msg.innerText=message;
-  field.parentNode.insertBefore(msg,field.nextSibling);
-}
-
-function clearErrors(){
-  document.querySelectorAll(".error-field").forEach(f=>f.classList.remove("error-field"));
-  document.querySelectorAll(".error-message").forEach(m=>m.remove());
-}
-function showSuccessUI(){
-  const container = document.querySelector(".container");
-  container.innerHTML = `
-    <div class="success-wrapper">
-      <div class="success-icon">✓</div>
-
-      <h2 style="color:#2f3e42;">Foglalását rögzítettük!</h2>
-
-      <div class="success-box">
-        A foglalás még nem minősül megerősített rendelésnek.<br>
-        Hamarosan e-mailben visszajelzünk.
+  <div class="wrap">
+    <div class="card">
+      <div class="topline">
+        <div>
+          <h1>Gyógyszer foglalás</h1>
+          <div class="pharm">
+            <strong>Szent György Gyógyszertár</strong><br>
+            8060 Mór, Köztársaság tér 1.<br>
+            06 22 407 036
+          </div>
+        </div>
+        <div class="center">
+          <a href="https://gyogyszertarmor.hu" target="_blank">← Vissza a honlapra</a>
+        </div>
       </div>
 
-      <button onclick="location.reload()">Új foglalás indítása</button>
+      <div class="warn">
+        Vényköteles gyógyszer kizárólag érvényes orvosi vény ellenében váltható ki.
+      </div>
 
-      <button class="secondary-btn" onclick="window.open('http://gyogyszertarmor.hu', '_blank');">
-  Vissza a honlapra
-</button>
+      <!-- FOGALALÁS -->
+      <div id="bookingContainer">
+        <div class="sectionTitle"><strong>Készítmények</strong></div>
+        <div id="medicinesContainer"></div>
+
+        <div class="btnRow">
+          <button type="button" class="ghost" onclick="addMedicineBlock()">➕ További készítmény hozzáadása</button>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="sectionTitle"><strong>Az Ön adatai</strong></div>
+        <div class="row">
+          <div class="field">
+            <label for="userName">Név</label>
+            <input id="userName" type="text" autocomplete="name" />
+          </div>
+          <div class="field">
+            <label for="userEmail">Email</label>
+            <input id="userEmail" type="email" autocomplete="email" />
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <label style="display:flex; gap:10px; align-items:flex-start;">
+            <input type="checkbox" id="gdprCheck" />
+            <span>
+              Hozzájárulok ahhoz, hogy a Szent György Gyógyszertár a megadott személyes adataimat kezelje.
+              <span class="tiny"><a href="<?= getAppUrl_() ?>?page=adatkezeles" target="_blank">Adatkezelési tájékoztató</a></span>
+            </span>
+          </label>
+        </div>
+
+        <!-- Honeypot -->
+        <input id="website" type="text" class="hidden" tabindex="-1" autocomplete="off" />
+
+        <div class="btnRow">
+          <button type="button" class="secondary" onclick="submitBooking()">Foglalás leadása</button>
+        </div>
+
+        <p id="bookingResult" class="tiny"></p>
+      </div>
+
+      <div class="hr"></div>
+
+      <!-- TÖRLÉS (csak linkről jövőknek) -->
+      <div id="cancelContainer" style="display:none; text-align:center; margin-top: 10px;">
+        <h3 style="margin: 6px 0 10px;">Foglalás törlése</h3>
+
+        <p style="max-width:520px; margin:0 auto 12px; color:#374151; font-size:14px;">
+          Ha törölni szeretnéd a foglalásod, add meg az email címedet. A <strong>rendelésszám</strong> automatikusan kitöltődik a link alapján.
+        </p>
+
+        <div style="max-width:420px; margin:0 auto;">
+          <label for="cancelOrderId"><strong>Rendelésszám</strong></label>
+          <input type="text" id="cancelOrderId" readonly style="text-align:center;" />
+
+          <label for="cancelEmail"><strong>Email</strong></label>
+          <input type="email" id="cancelEmail" style="text-align:center;" />
+
+          <label style="display:inline-block; text-align:left; margin-top:10px;">
+            <input type="checkbox" id="cancelConfirm" />
+            Biztosan törölni szeretném a foglalást
+          </label>
+
+          <div class="btnRow" style="justify-content:center;">
+            <button type="button" class="danger" onclick="requestCancel()">Foglalás törlése</button>
+          </div>
+
+          <p id="cancelResult" class="tiny"></p>
+        </div>
+      </div>
     </div>
-  `;
+  </div>
 
-  window.scrollTo({top:0, behavior:"smooth"});
-}
+  <datalist id="medNames"></datalist>
 
-function submitBooking(){
+  <script>
+    let formStartTime = Date.now();
 
-  clearErrors();
-  let medicines=[];
-  let hasError=false;
-
-  document.querySelectorAll(".med-block").forEach(block=>{
-    const name=block.querySelector("input");
-    const pack=block.querySelector("select");
-    const quantity=block.querySelector(".quantity");
-const custom=block.querySelector(".customInput");
-const blockId = block.id.split("_")[1];
-
-
-    if(!name.value.trim()){ showError(name,"Kötelező kitölteni."); hasError=true; }
-    if(pack.value===""){ showError(pack,"Kötelező kiválasztani."); hasError=true; }
-    if(quantity.value===""){ showError(quantity,"Kötelező kiválasztani."); hasError=true; }
-
-   if(
-  name.value &&
-  pack.value!=="" &&
-  quantity.value &&
-  medicinesData[blockId] &&
-  medicinesData[blockId][pack.value]
-){
-  const data = medicinesData[blockId][pack.value];
-
-      medicines.push({
-  name:name.value,
-  pack:data.kiszereles,
-  quantity:quantity.value,
-  hatoanyag:data.hatoanyag,
-  status:data.kiadhatosag,
-  custom: custom.value ? custom.value.trim() : ""
-});
-
+    function escapeHtml(s) {
+      return String(s || "").replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
     }
-  });
 
-  const userName=document.getElementById("userName");
-  const userEmail=document.getElementById("userEmail");
-  const gdpr=document.getElementById("gdprConsent");
+    function getQueryParam(name) {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        return params.get(name);
+      } catch (e) {
+        return null;
+      }
+    }
 
-  if(!userName.value.trim()){ showError(userName,"Kötelező kitölteni."); hasError=true; }
-  if(!userEmail.value.trim()){ 
-  showError(userEmail,"Kötelező kitölteni."); 
-  hasError=true; 
-} else {
+    function initCancelUI() {
+      const orderId = getQueryParam("orderId");
+      if (!orderId) return;
 
-  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const cancelContainer = document.getElementById("cancelContainer");
+      const cancelOrderId = document.getElementById("cancelOrderId");
+      if (!cancelContainer || !cancelOrderId) return;
 
-  if(!emailPattern.test(userEmail.value.trim())){
-    showError(userEmail,"Érvényes email címet adjon meg (pl. nev@email.hu).");
-    hasError = true;
-  }
+      cancelContainer.style.display = "block";
+      cancelOrderId.value = orderId;
 
-}
+      // opcionális: a foglalás részt is lehet hagyni, de nem muszáj elrejteni
+      // document.getElementById("bookingContainer").style.display = "none";
+    }
 
-  if(!gdpr.checked){ showError(gdpr,"Kötelező elfogadni."); hasError=true; }
+    window.addEventListener("load", initCancelUI);
 
-  if(hasError) return;
+    function addMedicineBlock() {
+      const container = document.getElementById("medicinesContainer");
+      const idx = container.children.length + 1;
 
-  const btn=document.getElementById("submitBtn");
-  btn.disabled=true;
-  btn.innerText="Küldés...";
+      const block = document.createElement("div");
+      block.className = "medBlock";
+      block.innerHTML = `
+        <div class="medHeader">
+          <strong>Készítmény #${idx}</strong>
+          <button type="button" class="ghost" onclick="removeMedicineBlock(this)">Eltávolítás</button>
+        </div>
 
-  const formTime = Date.now() - formStartTime;
+        <div class="row">
+          <div class="field">
+            <label>Gyógyszer neve</label>
+            <input type="text" class="medName" list="medNames" placeholder="Kezdj el gépelni..." />
+            <div class="tiny">Tipp: 3-4 betű után várj egy pillanatot.</div>
+          </div>
 
-  google.script.run
-  .withSuccessHandler(function(){
-    showSuccessUI();
-  })
-  .withFailureHandler(function(err){
-    alert("Hiba történt: " + err.message);
-    btn.disabled=false;
-    btn.innerText="Foglalás leadása";
-  })
-  .processBooking({
+          <div class="field">
+            <label>Kiszerelés</label>
+            <select class="medPack">
+              <option value="">Válassz kiszerelést…</option>
+            </select>
+          </div>
 
-    userName:userName.value,
-    userEmail:userEmail.value,
-    medicines:medicines,
-    honeypot:document.getElementById("website").value,
-    formTime:formTime
-  });
-}
+          <div class="field" style="flex: 0 1 160px;">
+            <label>Mennyiség</label>
+            <input type="number" class="medQty" min="1" value="1" />
+          </div>
+        </div>
 
-addMedicineBlock();
+        <div class="row">
+          <div class="field">
+            <label>Megjegyzés (opcionális)</label>
+            <textarea class="medCustom" placeholder="Írd ide a készítmény nevét, amennyiben a legördülő listában nem találod. Illetve, ha injekciót foglalsz és nem egy egész doboz van a recepten, hanem valamennyi ampulla, kérlek írd ide: ampulla."></textarea>
+          </div>
+        </div>
+      `;
 
-function getQueryParam(name) {
-  const params = new URLSearchParams(window.location.search);
-  return params.get(name);
-}
+      container.appendChild(block);
 
-function prefillCancelFromUrl() {
-  const orderId = getQueryParam("orderId");
-  const orderEl = document.getElementById("cancelOrderId");
+      const nameInput = block.querySelector(".medName");
+      const packSelect = block.querySelector(".medPack");
 
-  if (orderId && orderEl) {
-    orderEl.value = orderId;
+      let searchTimer = null;
+      nameInput.addEventListener("input", () => {
+        const q = nameInput.value.trim();
+        packSelect.innerHTML = '<option value="">Válassz kiszerelést…</option>';
+        packSelect.dataset.variations = "";
 
-    // NEM módosítható:
-    orderEl.readOnly = true;     // nem tud beleírni
-    orderEl.disabled = true;     // még a kurzor se megy bele (extra biztos)
+        if (q.length < 2) return;
 
-    // Ha disabled, elküldéskor nem kerülne be automatikusan, ezért mi JS-ből úgyis kiolvassuk.
-    // (A requestCancel() a DOM-ból olvassa, ez működni fog.)
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+          google.script.run
+            .withSuccessHandler((names) => {
+              const dl = document.getElementById("medNames");
+              dl.innerHTML = "";
+              (names || []).forEach(n => {
+                const opt = document.createElement("option");
+                opt.value = n;
+                dl.appendChild(opt);
+              });
+            })
+            .getUniqueMedicines(q);
+        }, 250);
+      });
 
-    const section = document.getElementById("cancelSection");
-    if (section) section.scrollIntoView({ behavior: "smooth" });
-  }
-}
+      nameInput.addEventListener("change", () => {
+        const medName = nameInput.value.trim();
+        packSelect.innerHTML = '<option value="">Betöltés…</option>';
+        google.script.run
+          .withSuccessHandler((variations) => {
+            packSelect.innerHTML = '<option value="">Válassz kiszerelést…</option>';
+            const vars = variations || [];
+            vars.forEach(v => {
+              const opt = document.createElement("option");
+              opt.value = v.kiszereles;
+              opt.textContent = `${v.kiszereles} — ${v.hatoanyag} — ${v.kiadhatosag}`;
+              opt.dataset.hatoanyag = v.hatoanyag || "";
+              opt.dataset.status = v.kiadhatosag || "";
+              packSelect.appendChild(opt);
+            });
+          })
+          .withFailureHandler(() => {
+            packSelect.innerHTML = '<option value="">Nem sikerült betölteni</option>';
+          })
+          .getDetails(medName);
+      });
+    }
 
-window.addEventListener("load", prefillCancelFromUrl);
+    function removeMedicineBlock(btn) {
+      const block = btn.closest(".medBlock");
+      if (block) block.remove();
 
-function getQueryParam(name) {
-  const params = new URLSearchParams(window.location.search);
-  return params.get(name);
-}
+      // újraszámozás
+      const container = document.getElementById("medicinesContainer");
+      Array.from(container.children).forEach((b, i) => {
+        const strong = b.querySelector(".medHeader strong");
+        if (strong) strong.textContent = `Készítmény #${i + 1}`;
+      });
+    }
 
-function initCancelUI() {
-  const orderId = getQueryParam("orderId");
-  if (!orderId) return; // NINCS törlés mód
+    function submitBooking() {
+      const resultEl = document.getElementById("bookingResult");
+      resultEl.className = "tiny";
+      resultEl.textContent = "";
 
-  const container = document.getElementById("cancelContainer");
-  const orderInput = document.getElementById("cancelOrderId");
+      const userName = document.getElementById("userName").value.trim();
+      const userEmail = document.getElementById("userEmail").value.trim();
+      const gdprOk = document.getElementById("gdprCheck").checked;
 
-  if (!container || !orderInput) return;
+      if (!userName || !userEmail) {
+        resultEl.classList.add("err");
+        resultEl.textContent = "Kérlek add meg a neved és az email címed.";
+        return;
+      }
+      if (!gdprOk) {
+        resultEl.classList.add("err");
+        resultEl.textContent = "A foglaláshoz el kell fogadnod az adatkezelést.";
+        return;
+      }
 
-  container.style.display = "block";
-  orderInput.value = orderId;
-}
+      const blocks = Array.from(document.querySelectorAll(".medBlock"));
+      const medicines = [];
 
-window.addEventListener("load", initCancelUI);
+      for (const b of blocks) {
+        const name = b.querySelector(".medName").value.trim();
+        const packSel = b.querySelector(".medPack");
+        const pack = packSel.value;
+        const qty = parseInt(b.querySelector(".medQty").value, 10) || 1;
+        const custom = b.querySelector(".medCustom").value.trim();
 
-function requestCancel() {
-  const orderId = document.getElementById("cancelOrderId").value.trim();
-  const email = document.getElementById("cancelEmail").value.trim();
-  const confirm = document.getElementById("cancelConfirm").checked;
-  const result = document.getElementById("cancelResult");
+        if (!name) continue;
+        if (!pack) {
+          resultEl.classList.add("err");
+          resultEl.textContent = "Kérlek válassz kiszerelést minden megadott készítményhez.";
+          return;
+        }
 
-  result.textContent = "";
+        const selected = packSel.options[packSel.selectedIndex];
+        const hatoanyag = selected ? (selected.dataset.hatoanyag || "") : "";
+        const status = selected ? (selected.dataset.status || "") : "";
 
-  if (!email) {
-    result.textContent = "Kérlek add meg az email címet.";
-    return;
-  }
+        medicines.push({
+          name: name,
+          pack: pack,
+          quantity: qty,
+          custom: custom,
+          hatoanyag: hatoanyag,
+          status: status
+        });
+      }
 
-  if (!confirm) {
-    result.textContent = "Kérlek erősítsd meg a törlést.";
-    return;
-  }
+      if (medicines.length === 0) {
+        resultEl.classList.add("err");
+        resultEl.textContent = "Kérlek adj hozzá legalább 1 készítményt.";
+        return;
+      }
 
-  result.textContent = "Törlés folyamatban…";
+      const payload = {
+        userName: userName,
+        userEmail: userEmail,
+        medicines: medicines,
+        honeypot: document.getElementById("website").value,
+        formTime: Date.now() - formStartTime
+      };
 
-  google.script.run
-    .withSuccessHandler(res => {
-      result.textContent = res.message || "Sikeres törlés.";
-    })
-    .withFailureHandler(err => {
-      result.textContent = "Hiba történt.";
-    })
-    .cancelBooking({ orderId, email });
-}
+      resultEl.textContent = "Foglalás küldése…";
 
-</script>
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res && res.ok) {
+            resultEl.classList.add("ok");
+resultEl.innerHTML = `
+  <div style="margin-top:12px; padding:14px; border:1px solid #86efac; background:#ecfdf5; border-radius:12px;">
+    <strong style="font-size:16px; color:#166534;">
+      Foglalását rögzítettük ✅
+    </strong>
+    <p style="margin:8px 0 0; font-size:14px;">
+      <strong>Fontos:</strong> a foglalás még <strong>nem minősül megerősített rendelésnek</strong>.<br>
+      Hamarosan visszajelzünk az Ön email címére.
+    </p>
+    <p style="margin:8px 0 0; font-size:13px;">
+      <strong>Rendelésszám:</strong> ${res.orderId}
+    </p>
+  </div>
+`;
+          } else {
+            resultEl.classList.add("err");
+            resultEl.textContent = "Nem sikerült a foglalás.";
+          }
+        })
+        .withFailureHandler((err) => {
+          resultEl.classList.add("err");
+          resultEl.textContent = "Hiba: " + (err && err.message ? err.message : err);
+        })
+        .processBooking(payload);
+    }
 
-<!-- TÖRLÉS – ALAPBÓL REJTETT -->
-<div id="cancelContainer"
-     style="display:none; text-align:center; margin-top:40px;">
+    function requestCancel() {
+      const orderId = (document.getElementById("cancelOrderId").value || "").trim();
+      const email = (document.getElementById("cancelEmail").value || "").trim();
+      const confirm = document.getElementById("cancelConfirm").checked;
+      const result = document.getElementById("cancelResult");
 
-  <h3>Foglalás törlése</h3>
+      result.className = "tiny";
+      result.textContent = "";
 
-  <p style="max-width:420px; margin:0 auto 15px;">
-    Ha törölni szeretnéd a foglalásod, add meg az email címedet.
-  </p>
+      if (!orderId) {
+        result.classList.add("err");
+        result.textContent = "Hiányzik a rendelésszám. Kérlek az emailben lévő linket használd.";
+        return;
+      }
+      if (!email) {
+        result.classList.add("err");
+        result.textContent = "Kérlek add meg az email címet.";
+        return;
+      }
+      if (!confirm) {
+        result.classList.add("err");
+        result.textContent = "Kérlek erősítsd meg a törlést.";
+        return;
+      }
 
-  <label><strong>Rendelésszám</strong></label><br>
-  <input type="text"
-         id="cancelOrderId"
-         readonly
-         style="width:100%; max-width:420px; text-align:center;"><br><br>
+      result.textContent = "Törlés folyamatban…";
 
-  <label><strong>Email</strong></label><br>
-  <input type="email"
-         id="cancelEmail"
-         style="width:100%; max-width:420px; text-align:center;"><br><br>
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res && res.ok) {
+            result.classList.add("ok");
+            result.textContent = res.message || "A foglalás törölve lett.";
+          } else {
+            result.classList.add("err");
+            result.textContent = (res && res.message) ? res.message : "Nem sikerült a törlés.";
+          }
+        })
+        .withFailureHandler((err) => {
+          result.classList.add("err");
+          result.textContent = "Hiba: " + (err && err.message ? err.message : err);
+        })
+        .cancelBooking({ orderId: orderId, email: email });
+    }
 
-  <label style="display:inline-block; text-align:left;">
-    <input type="checkbox" id="cancelConfirm">
-    Biztosan törölni szeretném a foglalást
-  </label><br><br>
-
-  <button type="button" onclick="requestCancel()">
-    Foglalás törlése
-  </button>
-
-  <p id="cancelResult" style="margin-top:12px;"></p>
-</div>
+    // indulás
+    addMedicineBlock();
+  </script>
 </body>
 </html>
