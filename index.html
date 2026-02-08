@@ -595,7 +595,92 @@ const blockId = block.id.split("_")[1];
 
 addMedicineBlock();
 
+function getQueryParam(name) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(name);
+}
+
+function prefillCancelFromUrl() {
+  const orderId = getQueryParam("orderId");
+  const orderEl = document.getElementById("cancelOrderId");
+
+  if (orderId && orderEl) {
+    orderEl.value = orderId;
+
+    // NEM módosítható:
+    orderEl.readOnly = true;     // nem tud beleírni
+    orderEl.disabled = true;     // még a kurzor se megy bele (extra biztos)
+
+    // Ha disabled, elküldéskor nem kerülne be automatikusan, ezért mi JS-ből úgyis kiolvassuk.
+    // (A requestCancel() a DOM-ból olvassa, ez működni fog.)
+
+    const section = document.getElementById("cancelSection");
+    if (section) section.scrollIntoView({ behavior: "smooth" });
+  }
+}
+
+window.addEventListener("load", prefillCancelFromUrl);
+
+function requestCancel() {
+  var orderId = document.getElementById("cancelOrderId").value.trim();
+  var email = document.getElementById("cancelEmail").value.trim();
+  var confirm = document.getElementById("cancelConfirm").checked;
+  var resultEl = document.getElementById("cancelResult");
+
+  resultEl.textContent = "";
+
+  if (!orderId) {
+    resultEl.textContent = "Hiányzik az OrderID. Kérlek az emailben lévő törlés linket használd.";
+    return;
+  }
+
+  if (!email) {
+    resultEl.textContent = "Kérlek add meg az email címet.";
+    return;
+  }
+
+  if (!confirm) {
+    resultEl.textContent = "Kérlek pipáld be, hogy biztosan törölni szeretnéd.";
+    return;
+  }
+
+  resultEl.textContent = "Törlés folyamatban...";
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (res && res.ok) {
+        resultEl.textContent = res.message || "Sikeres törlés.";
+      } else {
+        resultEl.textContent = (res && res.message) ? res.message : "Nem sikerült törölni.";
+      }
+    })
+    .withFailureHandler(function(err) {
+      resultEl.textContent = "Hiba történt: " + (err && err.message ? err.message : err);
+    })
+    .cancelBooking({ orderId: orderId, email: email });
+}
+
 </script>
+
+<hr style="margin: 30px 0;">
+
+<div id="cancelSection"></div>
+<h3>Foglalás törlése</h3>
+<p>Ha törölni szeretnéd a foglalásod, add meg az email címedet. (Az OrderID-t a link automatikusan kitölti.)</p>
+
+<label>OrderID</label><br>
+<input type="text" id="cancelOrderId" style="width: 100%; max-width: 420px;"><br><br>
+
+<label>Email</label><br>
+<input type="email" id="cancelEmail" placeholder="pl. te@email.hu" style="width: 100%; max-width: 420px;"><br><br>
+
+<label>
+  <input type="checkbox" id="cancelConfirm">
+  Biztosan törölni szeretném a foglalást.
+</label><br><br>
+
+<button type="button" onclick="requestCancel()">Foglalás törlése</button>
+
+<p id="cancelResult" style="margin-top: 10px;"></p>
 </body>
 </html>
-
