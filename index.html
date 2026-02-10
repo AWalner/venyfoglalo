@@ -149,30 +149,43 @@
     }
 
     function getQueryParam(name) {
-      try {
-        const params = new URLSearchParams(window.location.search);
-        return params.get(name);
-      } catch (e) {
-        return null;
-      }
-    }
+  // Biztos módszer: URLSearchParams + fallback
+  try {
+    const params = new URLSearchParams(window.location.search || "");
+    const v = params.get(name);
+    if (v) return v;
+  } catch (e) {}
 
-    function initCancelUI() {
-      const orderId = getQueryParam("orderId");
-      if (!orderId) return;
+  // Fallback: kézi parse
+  const qs = (window.location.search || "").replace(/^\?/, "");
+  if (!qs) return null;
+  const parts = qs.split("&");
+  for (const p of parts) {
+    const [k, v] = p.split("=");
+    if (decodeURIComponent(k || "") === name) return decodeURIComponent(v || "");
+  }
+  return null;
+}
 
-      const cancelContainer = document.getElementById("cancelContainer");
-      const cancelOrderId = document.getElementById("cancelOrderId");
-      if (!cancelContainer || !cancelOrderId) return;
+function initCancelUI() {
+  const orderId = ("<?= orderIdFromServer ?>" || "").trim();
+  if (!orderId) return;
 
-      cancelContainer.style.display = "block";
-      cancelOrderId.value = orderId;
+  const cancelContainer = document.getElementById("cancelContainer");
+  const cancelOrderId = document.getElementById("cancelOrderId");
+  const booking = document.getElementById("bookingContainer");
 
-      // opcionális: a foglalás részt is lehet hagyni, de nem muszáj elrejteni
-      // document.getElementById("bookingContainer").style.display = "none";
-    }
+  if (!cancelContainer || !cancelOrderId) return;
 
-    window.addEventListener("load", initCancelUI);
+  cancelContainer.style.setProperty("display", "block", "important");
+  cancelOrderId.value = orderId;
+
+  if (booking) booking.style.display = "none";
+
+  cancelContainer.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+window.addEventListener("load", initCancelUI);
 
     function addMedicineBlock() {
       const container = document.getElementById("medicinesContainer");
@@ -230,16 +243,22 @@
         clearTimeout(searchTimer);
         searchTimer = setTimeout(() => {
           google.script.run
-            .withSuccessHandler((names) => {
-              const dl = document.getElementById("medNames");
-              dl.innerHTML = "";
-              (names || []).forEach(n => {
-                const opt = document.createElement("option");
-                opt.value = n;
-                dl.appendChild(opt);
-              });
-            })
-            .getUniqueMedicines(q);
+  .withSuccessHandler((names) => {
+    const dl = document.getElementById("medNames");
+    dl.innerHTML = "";
+    (names || []).forEach(n => {
+      const opt = document.createElement("option");
+      opt.value = n;
+      dl.appendChild(opt);
+    });
+  })
+  .withFailureHandler((err) => {
+    console.log("Keresési hiba:", err);
+    return;
+    // opcionálisan: mutassunk 1 rövid üzenetet
+    // alert("Keresési hiba: " + (err && err.message ? err.message : err));
+  })
+  .getUniqueMedicines(q);
         }, 250);
       });
 
