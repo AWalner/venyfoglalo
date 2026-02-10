@@ -1,303 +1,249 @@
-function doGet(e) {
+function updateOrderStatusForAdmin(payload) {
+  // payload: { rowNumber, newStatus, etaDate, etaUnknown }
+  if (!payload) throw new Error("Hiányzó payload.");
 
-  if (e && e.parameter && e.parameter.page == "adatkezeles") {
-    return HtmlService.createHtmlOutputFromFile('adatkezeles')
-      .setTitle('Adatkezelési tájékoztató');
+  var rowNumber = parseInt(payload.rowNumber, 10);
+  if (!rowNumber || rowNumber < 2) throw new Error("Hibás rowNumber.");
+
+  var newStatus = String(payload.newStatus || "").trim().toUpperCase();
+  if (!newStatus) throw new Error("Hiányzó státusz.");
+
+  // Engedélyezett státuszok
+  var ALLOWED = {
+    "FELDOLGOZATLAN": true,
+    "AZONNAL ÁTVEHETŐ": true,
+    "NINCS KÉSZLETEN, DE RENDELHETŐ": true,
+    "TERMÉKHIÁNY": true,
+    "TELJESÍTVE": true,
+    "TÖRÖLVE": true
+  };
+  if (!ALLOWED[newStatus]) throw new Error("Ismeretlen státusz: " + newStatus);
+
+  var etaDate = (payload.etaDate || "").toString().trim();      // "YYYY-MM-DD"
+  var etaUnknown = !!payload.etaUnknown;                        // true/false
+
+  // Validáció extra mezőkre
+  if (newStatus === "NINCS KÉSZLETEN, DE RENDELHETŐ") {
+    if (!etaDate) throw new Error("Rendelhető státusznál kötelező a várható dátum.");
+    etaUnknown = false;
   }
-
-  return HtmlService.createTemplateFromFile('Index')
-    .evaluate()
-    .setTitle('Patikai Vényfoglaló')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
-}
-function getAppUrl_() {
-  return ScriptApp.getService().getUrl();
-}
-/* ============================= */
-/* ===== SPAM VÉDELEM RÉSZ ===== */
-/* ============================= */
-
-function isRateLimited(email) {
-  var cache = CacheService.getScriptCache();
-  var key = "booking_" + email.toLowerCase();
-  var windowSeconds = 600;
-  var maxAttempts = 4;
-
-  var existing = cache.get(key);
-  if (existing) {
-    var count = parseInt(existing, 10);
-    if (count >= maxAttempts) return true;
-    cache.put(key, String(count + 1), windowSeconds);
-    return false;
+  if (newStatus === "TERMÉKHIÁNY") {
+    // dátum vagy ismeretlen
+    if (!etaDate && !etaUnknown) throw new Error("Termékhiánynál add meg a várható dátumot vagy jelöld ismeretlennek.");
   }
-
-  cache.put(key, "1", windowSeconds);
-  return false;
-}
-
-// ===== KERESÉS: ékezet-eltávolítás + token match + cache =====
-
-function normalizeHu_(s) {
-  return String(s || "")
-    .toLowerCase()
-    .normalize("NFD")                 // ékezetek szétbontása
-    .replace(/[\u0300-\u036f]/g, "")  // ékezet jelek törlése
-    .replace(/[^a-z0-9\s]/g, " ")     // írásjelek -> szóköz
-    .replace(/\s+/g, " ")            // több szóköz összevonás
-    .trim();
-}
-
-function getMedicinesIndex_() {
-  // Cache 20 percre (nagy gyorsulás)
-  var cache = CacheService.getScriptCache();
-  var cached = cache.get("MED_INDEX_V1");
-  if (cached) {
-    try { return JSON.parse(cached); } catch (e) {}
+  // többi státusznál töröljük az ETA mezőket (hogy ne maradjon régi adat)
+  if (newStatus !== "NINCS KÉSZLETEN, DE RENDELHETŐ" && newStatus !== "TERMÉKHIÁNY") {
+    etaDate = "";
+    etaUnknown = false;
   }
-
-  var ss = SpreadsheetApp.openById("1nFZqVz1ngIToHZGoO29ExH2sLTjsMy8nCBMETf4YHeU");
-  var sheet = ss.getSheets()[0];
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) return [];
-
-  // Csak az A (név) és D (kiadhatóság) oszlop kell
-  var values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
-
-  var seen = {};
-  var index = [];
-  for (var i = 0; i < values.length; i++) {
-    var name = values[i][0];
-    var kiadhatosag = values[i][3];
-    if (!name || !kiadhatosag) continue;
-
-    if (!seen[name]) {
-      seen[name] = true;
-      index.push({
-        name: name,
-        norm: normalizeHu_(name)
-      });
-    }
-  }
-
-  cache.put("MED_INDEX_V1", JSON.stringify(index), 20 * 60);
-  return index;
-}
-
-/* ===== GYÓGYSZER KERESÉS (JAVÍTOTT) ===== */
-function getUniqueMedicines(searchQuery) {
-  var q = normalizeHu_(searchQuery);
-
-  // 2 karakter alatt ne keressünk (gyorsaság)
-  if (!q || q.length < 2) return [];
-
-  var tokens = q.split(" ").filter(Boolean);
-  if (tokens.length === 0) return [];
-
-  var index = getMedicinesIndex_();
-
-  // Token-alapú találat + "prefix" bónusz
-  var scored = [];
-  for (var i = 0; i < index.length; i++) {
-    var item = index[i];
-    var hay = item.norm;
-
-    // minden tokennek szerepelnie kell
-    var ok = true;
-    for (var t = 0; t < tokens.length; t++) {
-      if (hay.indexOf(tokens[t]) === -1) { ok = false; break; }
-    }
-    if (!ok) continue;
-
-    // pontozás: prefix + rövidebb név előny
-    var score = 0;
-    if (hay.indexOf(q) === 0) score += 100;           // teljes lekérdezés prefix
-    if (hay.indexOf(tokens[0]) === 0) score += 40;    // első token prefix
-    score += Math.max(0, 30 - hay.length);            // rövidebb név előny
-
-    scored.push({ name: item.name, score: score });
-  }
-
-  scored.sort(function (a, b) {
-    if (b.score !== a.score) return b.score - a.score;
-    return a.name.localeCompare(b.name, "hu");
-  });
-
-  // max 8 találat
-  var out = [];
-  for (var k = 0; k < scored.length && out.length < 8; k++) {
-    out.push(scored[k].name);
-  }
-  return out;
-}
-function getDetails(medName) {
-  var ss = SpreadsheetApp.openById("1nFZqVz1ngIToHZGoO29ExH2sLTjsMy8nCBMETf4YHeU");
-  var sheet = ss.getSheets()[0];
-  var data = sheet.getDataRange().getValues();
-  var variations = [];
-
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][0] === medName) {
-      variations.push({
-        kiszereles: data[i][1],
-        hatoanyag: data[i][2],
-        kiadhatosag: data[i][3]
-      });
-    }
-  }
-  return variations;
-}
-
-/* ======================================= */
-/* ===== FOGLALÁS FELDOLGOZÁS ===== */
-/* ======================================= */
-
-function processBooking(data) {
-
-  if (data.honeypot && data.honeypot !== "") throw new Error("Spam.");
-  if (!data.formTime || data.formTime < 3000) throw new Error("Túl gyors.");
-  if (isRateLimited(data.userEmail)) throw new Error("Limit túllépve.");
-  if (!data.userName || !data.userEmail || !data.medicines || data.medicines.length === 0)
-    throw new Error("Hiányzó adat.");
-
-  var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailPattern.test(data.userEmail)) throw new Error("Érvénytelen email.");
-
-  var orderId = generateOrderId_();
 
   var ss = SpreadsheetApp.openById("1nFZqVz1ngIToHZGoO29ExH2sLTjsMy8nCBMETf4YHeU");
   var sheet = ss.getSheetByName("GDPR_naplo");
+  if (!sheet) throw new Error("GDPR_naplo munkalap nem található.");
 
-  var listText = "";
-  var listHtml = "";
+  // Betöltjük a sort (A–J), hogy tudjunk emailt küldeni a vevőnek
+  var row = sheet.getRange(rowNumber, 1, 1, 10).getValues()[0];
 
-  data.medicines.forEach(function(med, index) {
-    listText += (index + 1) + ". " + med.name +
-      "\nKiszerelés: " + med.pack +
-      "\nMennyiség: " + med.quantity +
-      "\nHatóanyag: " + med.hatoanyag +
-      "\nKategória: " + med.status +
-      (med.custom ? "\nEgyedi megnevezés: " + med.custom : "") +
-      "\n\n";
+  var orderId = String(row[1] || "");
+  var name = String(row[2] || "");
+  var email = String(row[3] || "");
+  var itemsText = String(row[4] || "");
 
-    listHtml += `
-      <div style="margin-bottom:15px;">
-        <strong>${index + 1}. ${med.name}</strong><br>
-        Kiszerelés: ${med.pack}<br>
-        Mennyiség: ${med.quantity}<br>
-        Hatóanyag: ${med.hatoanyag}<br>
-        Kategória: ${med.status}<br>
-        ${med.custom ? "Egyedi megnevezés: " + med.custom : ""}
-      </div>`;
-  });
+  // Frissítés: G státusz, H időbélyeg, I dátum, J ismeretlen
+  sheet.getRange(rowNumber, 7).setValue(newStatus);
+  sheet.getRange(rowNumber, 8).setValue(new Date());
+  sheet.getRange(rowNumber, 9).setValue(etaDate || "");
+  sheet.getRange(rowNumber, 10).setValue(etaUnknown ? true : false);
 
-  sheet.appendRow([
-    new Date(),
-    orderId,
-    data.userName,
-    data.userEmail,
-    listText.trim(),
-    "IGEN",
-    "",
-    ""
-  ]);
+  // Email logika: FELDOLGOZATLAN = nincs email
+  if (email && newStatus !== "FELDOLGOZATLAN") {
+    sendStatusEmail_(email, name, orderId, itemsText, newStatus, etaDate, etaUnknown);
+  }
 
-  MailApp.sendEmail(
-    "recept.gyogyszertarmor@gmail.com",
-    "ÚJ FOGLALÁS - " + orderId,
-    "Rendelésszám: " + orderId + "\n\n" + listText +
-    "Név: " + data.userName + "\nEmail: " + data.userEmail
-  );
+  return { ok: true };
+}
+function updateOrderStatus(data) {
+  if (!data || !data.rowNumber) throw new Error("Hiányzó rowNumber.");
+  var row = Number(data.rowNumber);
+  if (!row || row < 2) throw new Error("Érvénytelen sor.");
 
+  var newStatus = String(data.newStatus || "").trim();
+  if (!newStatus) throw new Error("Hiányzó státusz.");
+
+  var etaUnknown = (data.etaUnknown === true || String(data.etaUnknown).toUpperCase() === "TRUE");
+  var etaDateStr = String(data.etaDate || "").trim();
+  var cancelReason = String(data.cancelReason || "").trim();
+
+  // Validáció
+  if (newStatus === STATUS.ORDERABLE) {
+    if (!etaDateStr) throw new Error("A 'RENDELHETŐ' státuszhoz kötelező a várható érkezés dátum.");
+  }
+  if (newStatus === STATUS.SHORTAGE) {
+    if (!etaUnknown && !etaDateStr) throw new Error("A 'TERMÉKHIÁNY' státuszhoz dátum VAGY 'ismeretlen' szükséges.");
+  }
+
+  var ss = SpreadsheetApp.openById("1nFZqVz1ngIToHZGoO29ExH2sLTjsMy8nCBMETf4YHeU");
+  var sheet = ss.getSheetByName("GDPR_naplo");
+  if (!sheet) throw new Error("GDPR_naplo munkalap nem található.");
+
+  // Olvassuk ki a rendelés adatait (A–J)
+  var lastCol = sheet.getLastColumn();
+  var numCols = Math.min(10, lastCol); // A–J
+  var r = sheet.getRange(row, 1, 1, numCols).getValues()[0];
+
+  var orderId = String(r[1] || "").trim(); // B
+  var name = String(r[2] || "").trim();    // C
+  var email = String(r[3] || "").trim();   // D
+  var itemsText = String(r[4] || "").trim(); // E
+
+  if (!orderId || !email) throw new Error("Hiányzó orderId/email a sorban.");
+
+  // Sheet update: G státusz, H idő, I ETA dátum, J ETA unknown
+  sheet.getRange(row, 7).setValue(newStatus);     // G
+  sheet.getRange(row, 8).setValue(new Date());    // H
+
+  var etaDateObj = parseDateToISO_(etaDateStr);
+
+  if (newStatus === STATUS.ORDERABLE) {
+    sheet.getRange(row, 9).setValue(etaDateObj);  // I kötelező
+    sheet.getRange(row, 10).setValue(false);      // J
+  } else if (newStatus === STATUS.SHORTAGE) {
+    if (etaUnknown) {
+      sheet.getRange(row, 9).setValue("");        // I
+      sheet.getRange(row, 10).setValue(true);     // J
+    } else {
+      sheet.getRange(row, 9).setValue(etaDateObj);// I
+      sheet.getRange(row, 10).setValue(false);    // J
+    }
+  } else {
+    // többi státusz esetén ETA mezőket ürítjük (átlátható)
+    sheet.getRange(row, 9).setValue("");
+    sheet.getRange(row, 10).setValue(false);
+  }
+
+  // opcionális: törlés indok tárolása K oszlopban (11)
+  if (newStatus === STATUS.CANCELED) {
+    sheet.getRange(row, 11).setValue(cancelReason); // K (ha nincs, létrejön)
+  }
+
+  // Email összeállítás
   var baseUrl = ScriptApp.getService().getUrl();
   var cancelUrl = baseUrl + "?orderId=" + encodeURIComponent(orderId);
 
-  var cancelLinkHtml =
-    '<p style="text-align:center; margin-bottom:20px;">' +
-    '<b>Foglalás törlése (rendelésszám alapján)</b><br>' +
-    '<a href="' + cancelUrl + '" style="color:#dc3545; font-weight:bold;">' +
-    'Kattintson ide a foglalás törléséhez</a></p>';
+  var extra = "";
+  var footer = "";
 
-  var htmlBodyCustomer = `
-<div style="font-family:Segoe UI, Arial, sans-serif; max-width:600px; margin:auto; padding:20px; border:1px solid #ddd; border-radius:10px;">
-${cancelLinkHtml}
-<h2 style="color:#28a745; text-align:center;">Receptfoglalását rögzítettük</h2>
+  if (newStatus === STATUS.READY) {
+    extra = "A foglalásában szereplő termék(ek) <b>átvehető(ek) a patikában</b>.";
+  } else if (newStatus === STATUS.ORDERABLE) {
+    extra = "A termék(ek) jelenleg <b>nincs(enek) készleten</b>, de <b>rendelhető(ek)</b>.";
+    extra += "<br><b>Várható érkezés:</b> " + etaDateStr;
+  } else if (newStatus === STATUS.SHORTAGE) {
+    extra = "Sajnos a termék jelenleg <b>nem beszerezhető</b> (termékhiány).";
+    extra += "<br><b>Várható:</b> " + (etaUnknown ? "ismeretlen" : etaDateStr);
+  } else if (newStatus === STATUS.DONE) {
+    extra = "A rendelést <b>teljesítettük</b>.";
+    footer = "Köszönjük szépen, hogy minket választott.";
+  } else if (newStatus === STATUS.CANCELED) {
+    extra = "A rendelést <b>töröltük</b>.";
+    if (cancelReason) extra += "<br><b>Indoklás:</b> " + cancelReason;
+  }
 
-<p style="text-align:center;"><strong>Rendelésszám:</strong><br>${orderId}</p>
+  var subject = "Rendelés státusza megváltozott – " + orderId;
 
-<p>Tisztelt <strong>${data.userName}</strong>!</p>
-
-<p>A foglalás egyelőre nem minősül megerősített rendelésnek.</p>
-
-<div style="background:#eafaf1; padding:15px; border-left:5px solid #28a745;">
-${listHtml}
-</div>
-
-<hr>
-
-<p><strong>Szent György Gyógyszertár</strong><br>
-8060 Mór, Köztársaság tér 1.<br>
-📞 (06 22) 407 036</p>
-
-<p><a href="https://gyogyszertarmor.hu">www.gyogyszertarmor.hu</a></p>
-</div>`;
-
-  MailApp.sendEmail({
-    to: data.userEmail,
-    subject: "Receptfoglalás rögzítve – " + orderId,
-    htmlBody: htmlBodyCustomer
+  var html = buildStatusEmailHtml_({
+    name: name,
+    orderId: orderId,
+    itemsText: itemsText,
+    newStatusLabel: newStatus,
+    extraLineHtml: extra,
+    cancelUrl: cancelUrl,
+    footerNoteHtml: footer
   });
 
-  return { ok: true, orderId: orderId };
+  sendStatusEmail_(email, subject, html);
+
+  return { ok: true };
 }
 
-/* ===== TÖRLÉS ===== */
 
-function cancelBooking(data) {
-  var orderId = (data.orderId || "").trim();
-  var email = (data.email || "").trim().toLowerCase();
+/*******************************
+ * ADMIN: státusz mentés + email
+ *******************************/
 
-  if (!orderId || !email) return { ok: false, message: "Hiányzó adat." };
+function updateOrderStatusAdmin(payload) {
+  payload = payload || {};
+  var orderId = String(payload.orderId || "").trim();
+  var status = String(payload.status || "").trim(); // AZONNAL_ATVEHETO / RENDELHETO / TERMEKHIANY / TELJESITVE / TOROLVE
+  if (!orderId || !status) return { ok: false, message: "Hiányzó orderId vagy status." };
 
+  // Normalizálás (frontend kódjai -> emberi feliratok a táblába)
+  var statusHu = mapStatusToHu_(status);
+
+  // validáció: rendelhető -> ETA kötelező, termékhiány -> ETA vagy ismeretlen
+  var etaDate = String(payload.etaDate || "").trim();        // "YYYY-MM-DD" vagy ""
+  var etaUnknown = !!payload.etaUnknown;                     // true/false
+
+  if (status === "RENDELHETO") {
+    if (etaUnknown) return { ok: false, message: "RENDELHETŐ esetén nem lehet ismeretlen ETA." };
+    if (!etaDate) return { ok: false, message: "RENDELHETŐ esetén kötelező ETA dátum." };
+  }
+  if (status === "TERMEKHIANY") {
+    // lehet üres + ismeretlen false is, de email szempontból jobb, ha legalább az egyik:
+    // nem erőltetjük, de ha mindkettő üres/false, akkor csak "ismeretlen" jelleggel kommunikál.
+  }
+
+  var note = String(payload.note || "").trim(); // opcionális megjegyzés (emailbe)
+  var cancelReason = String(payload.cancelReason || "").trim();
+
+  var substituteAvailable = !!payload.substituteAvailable;
+  var substituteOrderable = !!payload.substituteOrderable;
+  var substituteEtaDate = String(payload.substituteEtaDate || "").trim();
+
+  if (substituteOrderable && !substituteEtaDate) {
+    return { ok: false, message: "Helyettesítő rendelhető esetén kötelező a helyettesítő ETA dátum." };
+  }
+
+  // Sheet + sor megkeresés
   var ss = SpreadsheetApp.openById("1nFZqVz1ngIToHZGoO29ExH2sLTjsMy8nCBMETf4YHeU");
   var sheet = ss.getSheetByName("GDPR_naplo");
   if (!sheet) return { ok: false, message: "GDPR_naplo munkalap nem található." };
 
-  var values = sheet.getDataRange().getValues();
+  var row = findRowByOrderId_(sheet, orderId);
+  if (!row) return { ok: false, message: "Nem található rendelés ezzel az orderId-val: " + orderId };
 
-  for (var i = 1; i < values.length; i++) {
-    var rowOrderId = String(values[i][1] || "").trim();
-    var rowEmail = String(values[i][3] || "").trim().toLowerCase();
-    var rowStatus = String(values[i][6] || "").trim().toUpperCase(); // 7. oszlop
+  // adatok a sorból emailhez
+  var rowValues = sheet.getRange(row, 1, 1, Math.min(10, sheet.getLastColumn())).getValues()[0];
+  var customerName = String(rowValues[2] || "Vásárló").trim();
+  var customerEmail = String(rowValues[3] || "").trim();
+  var itemsText = String(rowValues[4] || "").trim();
 
-    if (rowOrderId === orderId && rowEmail === email) {
-      if (rowStatus === "TÖRÖLVE") {
-        return { ok: true, message: "A foglalás már törölve van." };
-      }
-      sheet.getRange(i + 1, 7).setValue("TÖRÖLVE");
-      sheet.getRange(i + 1, 8).setValue(new Date());
-      return { ok: true, message: "Foglalás törölve." };
-    }
-  }
+  if (!customerEmail) return { ok: false, message: "Hiányzik a vásárló email címe a sorból." };
 
-  return { ok: false, message: "Nem található." };
-}
+  // Mentés: G=státusz, H=időbélyeg, I=ETA, J=ETA ismeretlen
+  var now = new Date();
+  sheet.getRange(row, 7).setValue(statusHu);  // G
+  sheet.getRange(row, 8).setValue(now);       // H
+  sheet.getRange(row, 9).setValue(etaDate);   // I (szövegként is ok)
+  sheet.getRange(row, 10).setValue(etaUnknown ? true : false); // J
 
-/* ===== ORDER ID ===== */
+  // Email küldés (minden státuszváltásnál, beleértve TÖRÖLVE)
+  sendStatusEmailToCustomer_({
+    to: customerEmail,
+    name: customerName,
+    orderId: orderId,
+    itemsText: itemsText,
+    statusCode: status,
+    statusHu: statusHu,
+    etaDate: etaDate,
+    etaUnknown: etaUnknown,
+    note: note,
+    cancelReason: cancelReason,
+    substituteAvailable: substituteAvailable,
+    substituteOrderable: substituteOrderable,
+    substituteEtaDate: substituteEtaDate,
+    isCustomerSelfCancel: false
+  });
 
-function generateOrderId_() {
-  const lock = LockService.getScriptLock();
-  lock.waitLock(30000);
-  try {
-    const props = PropertiesService.getScriptProperties();
-    const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd");
-    const lastDate = props.getProperty("ORDER_SEQ_DATE");
-    let seq = parseInt(props.getProperty("ORDER_SEQ_NUM") || "0", 10);
-    if (lastDate !== today) seq = 0;
-    seq++;
-    props.setProperty("ORDER_SEQ_DATE", today);
-    props.setProperty("ORDER_SEQ_NUM", String(seq));
-    return `SGY-${today}-${String(seq).padStart(4, "0")}`;
-  } finally {
-    lock.releaseLock();
-  }
+  return { ok: true };
 }
