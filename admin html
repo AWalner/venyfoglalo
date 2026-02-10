@@ -101,6 +101,7 @@
     localStorage.removeItem(ADMIN_TOKEN_KEY);
   }
 
+  <script>
   function showLogin(message) {
     root.innerHTML = `
       <div style="max-width:420px;">
@@ -108,36 +109,75 @@
         <div style="font-size:13px; color:#6b7280; margin-bottom:10px;">
           Kérlek add meg az admin jelszót.
         </div>
-        <input id="adminPw" type="password" style="width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:12px;" placeholder="Jelszó" />
-        <button id="adminLoginBtn" style="margin-top:10px; padding:10px 14px; border-radius:12px; border:0; background:#111827; color:#fff; font-weight:700; cursor:pointer;">
+
+        <input
+          id="adminPw"
+          type="password"
+          style="width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:12px;"
+          placeholder="Jelszó"
+        />
+
+        <button
+          id="adminLoginBtn"
+          style="margin-top:10px; padding:10px 14px; border-radius:12px; border:0; background:#111827; color:#fff; font-weight:700; cursor:pointer;"
+        >
           Belépés
         </button>
+
         <div id="adminLoginMsg" style="margin-top:10px; font-size:13px; color:#b91c1c; white-space:pre-wrap;"></div>
       </div>
     `;
 
     const msgEl = document.getElementById("adminLoginMsg");
+    const pwEl = document.getElementById("adminPw");
+    const btnEl = document.getElementById("adminLoginBtn");
+
     msgEl.textContent = message || "";
 
-    document.getElementById("adminLoginBtn").onclick = () => {
-      const pw = document.getElementById("adminPw").value || "";
+    function doLogin() {
+      const pw = (pwEl.value || "").trim();
+      if (!pw) {
+        msgEl.textContent = "Kérlek add meg a jelszót.";
+        return;
+      }
+
+      msgEl.style.color = "#6b7280";
       msgEl.textContent = "Ellenőrzés…";
+      btnEl.disabled = true;
 
       google.script.run
         .withSuccessHandler((res) => {
+          btnEl.disabled = false;
+
           if (res && res.ok && res.token) {
             setAdminToken(res.token);
-            bootstrapAdmin(); // indulhat az admin
-          } else {
-            msgEl.textContent = (res && res.message) ? res.message : "Hibás jelszó.";
+            bootstrapAdmin(); // ✅ indulhat az admin
+            return;
           }
+
+          msgEl.style.color = "#b91c1c";
+          msgEl.textContent = (res && res.message) ? res.message : "Hibás jelszó.";
         })
         .withFailureHandler((err) => {
+          btnEl.disabled = false;
+          msgEl.style.color = "#b91c1c";
           msgEl.textContent = "Hiba: " + (err && err.message ? err.message : err);
         })
         .verifyAdminPassword_(pw);
-    };
+    }
+
+    btnEl.onclick = doLogin;
+
+    // Enterre is lépjen be
+    pwEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") doLogin();
+    });
+
+    // fókusz a mezőre
+    pwEl.focus();
   }
+</script>
+
 
   function bootstrapAdmin() {
     const token = getAdminToken();
@@ -509,54 +549,80 @@
 
   msg.textContent = "Mentés folyamatban…";
 
-  google.script.run
-    .withSuccessHandler((res) => {
-      if (res && res.ok) {
-        msg.className = "ok";
-        msg.textContent = "Mentve. Email elküldve."; // ✅ ne legyen sortörés a stringben
-        loadOrders(); // frissítünk
-      } else {
+  payload.adminToken = getAdminToken();
+
+google.script.run
+  .withSuccessHandler((res) => {
+  // 1) NO_CHANGE = kérdezz rá
+  if (res && res.code === "NO_CHANGE") {
+    const ok = confirm(res.message + "\n\nKüldjünk így is emailt?");
+    if (!ok) return;
+
+    payload.forceSend = true;
+payload.adminToken = getAdminToken();
+
+    google.script.run
+      .withSuccessHandler((res2) => {
+        if (res2 && res2.ok) {
+          msg.className = "ok";
+          msg.textContent = "Email elküldve (státusz nem változott).";
+          loadOrders();
+        } else {
+          msg.className = "err";
+          msg.textContent = (res2 && res2.message) ? res2.message : "Nem sikerült.";
+        }
+      })
+      .withFailureHandler((err2) => {
         msg.className = "err";
-        msg.textContent = (res && res.message) ? res.message : "Nem sikerült menteni.";
-      }
-    })
-    .withFailureHandler((err) => {
-      msg.className = "err";
-      msg.textContent = "Hiba: " + (err && err.message ? err.message : err);
-    })
-    .updateOrderStatusAdmin(payload);
+        msg.textContent = "Hiba: " + (err2 && err2.message ? err2.message : err2);
+      })
+      .updateOrderStatusAdmin(payload);
+
+    return;
+  }
+
+  // 2) normál siker
+  if (res && res.ok) {
+    msg.className = "ok";
+    msg.textContent = "Mentve. Email elküldve.";
+    loadOrders();
+    return;
+  }
+
+  // 3) normál “nem ok”
+  msg.className = "err";
+  msg.textContent = (res && res.message) ? res.message : "Nem sikerült menteni.";
+})
+
+
 }
   function loadOrders() {
     root.className = "";
     root.textContent = "Foglalások betöltése…";
 
     const payload = { adminToken: getAdminToken() };
+payload.adminToken = getAdminToken();
 
     google.script.run
-      .withSuccessHandler((orders) => {
-        // ha token hibát küld a backend, dobd vissza loginra
-        if (orders && orders.ok === false && String(orders.message || "").toLowerCase().includes("token")) {
-          clearAdminToken();
-          showLogin(orders.message || "Lejárt/hibás admin token. Jelentkezz be újra.");
-          return;
-        }
+  .withSuccessHandler((orders) => {
+    ALL_ORDERS = Array.isArray(orders) ? orders : [];
+    applyFilterSort();
+  })
+  .withFailureHandler((err) => {
+    const msg = (err && err.message) ? err.message : String(err);
 
-        ALL_ORDERS = Array.isArray(orders) ? orders : [];
-        applyFilterSort();
-      })
-      .withFailureHandler((err) => {
-        const m = (err && err.message) ? err.message : String(err);
-        // ha a backend hibában jelzi a token gondot
-        if (m.toLowerCase().includes("token")) {
-          clearAdminToken();
-          showLogin(m);
-          return;
-        }
-        root.className = "err";
-        root.textContent = "Hiba: " + m;
-      })
-      .getOrdersForAdmin(payload); // ✅ token átadása
-  }
+    // ha token gond, dobd vissza loginra
+    if (msg.toLowerCase().includes("token") || msg.toLowerCase().includes("jogosulatlan")) {
+      clearAdminToken();
+      showLogin(msg);
+      return;
+    }
+
+    root.className = "err";
+    root.textContent = "Hiba: " + msg;
+  })
+  .getOrdersForAdmin(getAdminToken());  // ✅ EZ A LÉNYEG
+
 
   // events
   document.querySelectorAll('input[name="flt"]').forEach(r => r.addEventListener("change", applyFilterSort));
