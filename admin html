@@ -3,646 +3,741 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Admin – Foglalások</title>
+  <title>Recept foglalás - patikai kezelő</title>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#f6f7f8; margin:0; }
-    .wrap { max-width: 1100px; margin:0 auto; padding:16px; }
+    .wrap { max-width: 1080px; margin:0 auto; padding:16px; }
     .card { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,0.04); }
     h1 { margin:0 0 6px; font-size:20px; }
     .muted { color:#6b7280; font-size:13px; }
     .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-    .hr { height:1px; background:#e5e7eb; margin:14px 0; }
-    .pill { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; font-size:12px; border:1px solid #e5e7eb; background:#fff; }
-    .radio { display:inline-flex; align-items:center; gap:6px; font-size:13px; }
-    .radio input { transform: translateY(1px); }
-    .select, .input, textarea { border:1px solid #d1d5db; border-radius:10px; padding:8px 10px; font-size:13px; background:#fff; }
-    textarea { width:100%; min-height:70px; resize:vertical; }
-    .btn { border:0; border-radius:12px; padding:10px 12px; font-size:13px; cursor:pointer; color:#fff; }
-    .btn:disabled { opacity:.6; cursor:not-allowed; }
-    .btn.gray { background:#9ca3af; }
-    .btn.green { background:#16a34a; }
-    .btn.blue { background:#2563eb; }
-    .btn.red { background:#dc2626; }
-    .btn.yellow { background:#f59e0b; color:#111827; }
-    .btn.dark { background:#374151; }
-    .btn.ghost { background:#fff; color:#111827; border:1px solid #d1d5db; }
-    .order { border:1px solid #e5e7eb; border-radius:14px; padding:14px; margin:12px 0; background:#fff; }
-    .orderTop { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-    .kv { font-size:13px; color:#111827; }
-    .kv b { color:#111827; }
-    .pre { white-space:pre-wrap; font-family: inherit; font-size:13px; }
-    .statusBadge { display:inline-flex; align-items:center; padding:6px 10px; border-radius:999px; font-size:12px; color:#fff; }
-    .badge-gray { background:#9ca3af; }
-    .badge-green { background:#16a34a; }
-    .badge-blue { background:#2563eb; }
-    .badge-red { background:#dc2626; }
-    .badge-yellow { background:#f59e0b; color:#111827; }
-    .badge-dark { background:#374151; }
-    .panel { margin-top:12px; border:1px dashed #d1d5db; border-radius:14px; padding:12px; background:#fafafa; }
+    .chips { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .chip {
+      border:1px solid #e5e7eb; background:#fff; border-radius:999px; padding:6px 10px;
+      font-size:13px; cursor:pointer; user-select:none;
+    }
+    .chip.active { background:#111827; color:#fff; border-color:#111827; }
+    .btn {
+      border:0; border-radius:12px; padding:10px 14px; font-weight:800; cursor:pointer;
+      display:inline-flex; gap:8px; align-items:center;
+    }
+    .btn:disabled { opacity:0.6; cursor:not-allowed; }
+    .btn-gray { background:#e5e7eb; color:#111827; }
+    .btn-green { background:#16a34a; color:#fff; }
+    .btn-blue { background:#2563eb; color:#fff; }
+    .btn-red { background:#dc2626; color:#fff; }
+    .btn-yellow { background:#f59e0b; color:#111827; }
+    .btn-dark { background:#374151; color:#fff; }
     .err { color:#b91c1c; font-size:13px; white-space:pre-wrap; }
     .ok { color:#166534; font-size:13px; white-space:pre-wrap; }
-    .small { font-size:12px; color:#6b7280; }
-    .right { margin-left:auto; }
-    .w200 { min-width:200px; }
+    .orders { margin-top: 14px; }
+    .order {
+      border:1px solid #e5e7eb; border-radius:14px; background:#fff; padding:14px; margin:12px 0;
+    }
+    .orderTop { display:flex; gap:10px; justify-content:space-between; flex-wrap:wrap; }
+    .badge {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px; border-radius:999px; font-size:12px; font-weight:800;
+      border:1px solid #e5e7eb;
+    }
+    .b-gray { background:#f3f4f6; color:#111827; }
+    .b-green { background:#dcfce7; color:#166534; border-color:#bbf7d0; }
+    .b-blue { background:#dbeafe; color:#1d4ed8; border-color:#bfdbfe; }
+    .b-red { background:#fee2e2; color:#991b1b; border-color:#fecaca; }
+    .b-yellow { background:#fef3c7; color:#92400e; border-color:#fde68a; }
+    .b-dark { background:#e5e7eb; color:#111827; border-color:#d1d5db; }
+    .meta { font-size:12px; color:#6b7280; margin-top:6px; }
+    .items { margin-top:10px; white-space:pre-wrap; font-size:13px; line-height:1.35; }
+    .actions { margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; }
+    .panel {
+      margin-top:12px; border:1px solid #e5e7eb; border-radius:14px; padding:12px; background:#fafafa;
+    }
+    label { font-size:13px; color:#111827; font-weight:700; display:block; margin:8px 0 6px; }
+    input[type="text"], input[type="date"], textarea, select {
+      width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:12px; font-size:14px;
+      box-sizing:border-box; background:#fff;
+    }
+    textarea { min-height:70px; resize:vertical; }
+    .small { font-size:12px; color:#6b7280; margin-top:6px; }
+    .sep { height:1px; background:#e5e7eb; border:0; margin:14px 0; }
+    .topbar { display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
+    .right { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .k { font-size:13px; color:#374151; font-weight:800; }
+    .inline { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .mini { width: 210px; }
+    .linkbtn {
+      display:inline-block; padding:10px 14px; border-radius:12px;
+      background:#111827; color:#fff; text-decoration:none; font-weight:800;
+    }
+    
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>Admin – Foglalások</h1>
-      <div class="muted">Státusz váltás → mentés a táblába + azonnali email küldés (következő lépésben kötjük be a backend mentést).</div>
-
-      <div class="hr"></div>
-
-      <div class="row" style="align-items:flex-start;">
-        <div class="pill"><b>Szűrés:</b></div>
-
-        <label class="radio"><input type="radio" name="flt" value="FELDOLGOZATLAN" checked> feldolgozatlan</label>
-        <label class="radio"><input type="radio" name="flt" value="ALL"> összes</label>
-        <label class="radio"><input type="radio" name="flt" value="AZONNAL_ATVEHETO"> azonnal átvehető</label>
-        <label class="radio"><input type="radio" name="flt" value="RENDELHETO"> rendelhető</label>
-        <label class="radio"><input type="radio" name="flt" value="TERMEKHIANY"> csak termékhiány</label>
-        <label class="radio"><input type="radio" name="flt" value="TELJESITVE"> teljesítve</label>
-        <label class="radio"><input type="radio" name="flt" value="TOROLVE"> törölve</label>
-
-        <div class="right row">
-          <span class="pill"><b>Rendezés:</b></span>
-          <select id="sortKey" class="select">
-            <option value="statusTime">Utoljára módosítva</option>
-            <option value="orderId">Rendelésszám</option>
-          </select>
-          <select id="sortDir" class="select">
-            <option value="desc">csökkenő</option>
-            <option value="asc">növekvő</option>
-          </select>
-          <button class="btn ghost" id="refreshBtn" type="button">Frissítés</button>
+      <div class="topbar">
+        <div>
+          <h1>Recept foglalás - patikai kezelő</h1>
+        </div>
+        <div class="right">
+          <button id="refreshBtn" class="btn btn-gray" type="button">Frissítés</button>
+          <button id="logoutBtn" class="btn btn-dark" type="button" title="Token törlése">Kilépés</button>
         </div>
       </div>
 
-      <div class="hr"></div>
+      <hr class="sep">
+      <div id="notifBar" style="margin:12px 0;"></div>
 
       <div id="adminApp">Betöltés…</div>
     </div>
   </div>
 
-<script>
-  const root = document.getElementById("adminApp");
-  root.textContent = "Admin betöltése…";
-
-  const ADMIN_TOKEN_KEY = "ADMIN_TOKEN_V1";
-
-  function getAdminToken() {
-    return localStorage.getItem(ADMIN_TOKEN_KEY) || "";
-  }
-  function setAdminToken(t) {
-    localStorage.setItem(ADMIN_TOKEN_KEY, t);
-  }
-  function clearAdminToken() {
-    localStorage.removeItem(ADMIN_TOKEN_KEY);
-  }
-
   <script>
-  function showLogin(message) {
-    root.innerHTML = `
-      <div style="max-width:420px;">
-        <div style="font-weight:700; margin-bottom:8px;">Admin belépés</div>
-        <div style="font-size:13px; color:#6b7280; margin-bottom:10px;">
-          Kérlek add meg az admin jelszót.
-        </div>
+    const root = document.getElementById("adminApp");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
 
-        <input
-          id="adminPw"
-          type="password"
-          style="width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:12px;"
-          placeholder="Jelszó"
-        />
+    let ALL_ORDERS = [];
+    let CURRENT_FILTER = "FELDOLGOZATLAN"; // alap: csak feldolgozatlan
+    let SORT_KEY = "statusTime";          // statusTime | orderId
+    let SORT_DIR = "desc";               // asc | desc
 
-        <button
-          id="adminLoginBtn"
-          style="margin-top:10px; padding:10px 14px; border-radius:12px; border:0; background:#111827; color:#fff; font-weight:700; cursor:pointer;"
-        >
-          Belépés
-        </button>
+    const ADMIN_TOKEN_KEY = "VENYFOGLALO_ADMIN_TOKEN";
 
-        <div id="adminLoginMsg" style="margin-top:10px; font-size:13px; color:#b91c1c; white-space:pre-wrap;"></div>
-      </div>
-    `;
-
-    const msgEl = document.getElementById("adminLoginMsg");
-    const pwEl = document.getElementById("adminPw");
-    const btnEl = document.getElementById("adminLoginBtn");
-
-    msgEl.textContent = message || "";
-
-    function doLogin() {
-      const pw = (pwEl.value || "").trim();
-      if (!pw) {
-        msgEl.textContent = "Kérlek add meg a jelszót.";
-        return;
-      }
-
-      msgEl.style.color = "#6b7280";
-      msgEl.textContent = "Ellenőrzés…";
-      btnEl.disabled = true;
-
-      google.script.run
-        .withSuccessHandler((res) => {
-          btnEl.disabled = false;
-
-          if (res && res.ok && res.token) {
-            setAdminToken(res.token);
-            bootstrapAdmin(); // ✅ indulhat az admin
-            return;
-          }
-
-          msgEl.style.color = "#b91c1c";
-          msgEl.textContent = (res && res.message) ? res.message : "Hibás jelszó.";
-        })
-        .withFailureHandler((err) => {
-          btnEl.disabled = false;
-          msgEl.style.color = "#b91c1c";
-          msgEl.textContent = "Hiba: " + (err && err.message ? err.message : err);
-        })
-        .verifyAdminPassword_(pw);
+    function esc(s) {
+      return String(s || "").replace(/[&<>"']/g, m => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+      }[m]));
     }
 
-    btnEl.onclick = doLogin;
-
-    // Enterre is lépjen be
-    pwEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") doLogin();
-    });
-
-    // fókusz a mezőre
-    pwEl.focus();
-  }
-</script>
-
-
-  function bootstrapAdmin() {
-    const token = getAdminToken();
-    if (!token) {
-      showLogin("");
-      return;
+    function getAdminToken() {
+      try { return localStorage.getItem(ADMIN_TOKEN_KEY) || ""; } catch (e) { return ""; }
+    }
+    function setAdminToken(t) {
+      try { localStorage.setItem(ADMIN_TOKEN_KEY, String(t||"")); } catch (e) {}
+    }
+    function clearAdminToken() {
+      try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch (e) {}
     }
 
-    // itt indul a te meglévő admin logikád: loadOrders(), stb.
-    loadOrders();
-  }
-  const refreshBtn = document.getElementById("refreshBtn");
-  const sortKeyEl = document.getElementById("sortKey");
-  const sortDirEl = document.getElementById("sortDir");
-
-  let ALL_ORDERS = [];
-
-  function esc(s) {
-    return String(s ?? "").replace(/[&<>"']/g, m => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-    }[m]));
-  }
-
-  function normStatus(s) {
-    const x = String(s || "").trim().toUpperCase();
-    if (x === "AZONNAL ÁTVEHETŐ" || x === "AZONNAL_ATVEHETO") return "AZONNAL_ATVEHETO";
-    if (x === "NINCS KÉSZLETEN, DE RENDELHETŐ" || x === "RENDELHETO") return "RENDELHETO";
-    if (x === "TERMÉKHIÁNY" || x === "TERMEKHIANY") return "TERMEKHIANY";
-    if (x === "TELJESÍTVE" || x === "TELJESITVE") return "TELJESITVE";
-    if (x === "TÖRÖLVE" || x === "TOROLVE") return "TOROLVE";
-    return "FELDOLGOZATLAN";
-  }
-
-  function statusLabel(code) {
-    switch (code) {
-      case "AZONNAL_ATVEHETO": return "AZONNAL ÁTVEHETŐ";
-      case "RENDELHETO": return "NINCS KÉSZLETEN, DE RENDELHETŐ";
-      case "TERMEKHIANY": return "TERMÉKHIÁNY";
-      case "TELJESITVE": return "TELJESÍTVE";
-      case "TOROLVE": return "TÖRÖLVE";
-      default: return "FELDOLGOZATLAN";
-    }
-  }
-
-  function badgeClass(code) {
-    switch (code) {
-      case "AZONNAL_ATVEHETO": return "badge-green";
-      case "RENDELHETO": return "badge-blue";
-      case "TERMEKHIANY": return "badge-red";
-      case "TELJESITVE": return "badge-yellow";
-      case "TOROLVE": return "badge-dark";
-      default: return "badge-gray";
-    }
-  }
-
-  function fmtDate(x) {
-    if (!x) return "";
-    try {
-      const d = (x instanceof Date) ? x : new Date(x);
-      if (isNaN(d.getTime())) return String(x);
-      return d.toLocaleString("hu-HU");
-    } catch (e) {
-      return String(x);
-    }
-  }
-
-  function getSelectedFilter() {
-    const el = document.querySelector('input[name="flt"]:checked');
-    return el ? el.value : "FELDOLGOZATLAN";
-  }
-
-  function applyFilterSort() {
-    const flt = getSelectedFilter();
-    let list = (ALL_ORDERS || []).slice();
-
-    // normalizáljuk a status-t
-    list.forEach(o => o._statusCode = normStatus(o.status));
-
-    if (flt !== "ALL") {
-      list = list.filter(o => o._statusCode === flt);
+    function isAuthErrorMessage(msg) {
+      const m = String(msg || "").toLowerCase();
+      return m.includes("token") || m.includes("auth") || m.includes("jogos") || m.includes("admin");
     }
 
-    const key = sortKeyEl.value;
-    const dir = sortDirEl.value;
-
-    list.sort((a,b) => {
-      let av, bv;
-      if (key === "orderId") {
-        av = String(a.orderId || "");
-        bv = String(b.orderId || "");
-      } else {
-        av = new Date(a.statusTime || a.timestamp || 0).getTime();
-        bv = new Date(b.statusTime || b.timestamp || 0).getTime();
-      }
-
-      if (av < bv) return (dir === "asc") ? -1 : 1;
-      if (av > bv) return (dir === "asc") ? 1 : -1;
-      return 0;
-    });
-
-    renderOrders(list);
-  }
-
-  function renderOrders(orders) {
-    if (!Array.isArray(orders)) {
-      root.className = "err";
-      root.textContent = "HIBA: getOrdersForAdmin() nem tömböt adott vissza: " + String(orders);
-      return;
-    }
-    if (orders.length === 0) {
-      root.className = "";
-      root.textContent = "Nincs foglalás a kiválasztott szűrőre.";
-      return;
-    }
-
-    root.className = "";
-    root.innerHTML = orders.map(o => {
-      const statusCode = o._statusCode || normStatus(o.status);
-      const eta = o.etaDate ? esc(o.etaDate) : "";
-      const etaUnknown = (String(o.etaUnknown).toUpperCase() === "TRUE");
-      const lastMod = fmtDate(o.statusTime || "");
-
-      return `
-        <div class="order" data-order="${esc(o.orderId)}" data-row="${esc(o.rowNumber)}">
-          <div class="orderTop">
-            <div class="kv">
-              <div><b>Rendelésszám:</b> ${esc(o.orderId)}</div>
-              <div><b>Név:</b> ${esc(o.name)}</div>
-              <div><b>Email:</b> ${esc(o.email)}</div>
-            </div>
-
-            <div class="kv">
-              <div><span class="statusBadge ${badgeClass(statusCode)}">${esc(statusLabel(statusCode))}</span></div>
-              <div class="small" style="margin-top:8px;"><b>Utoljára módosítva:</b> ${esc(lastMod || "-")}</div>
-              <div class="small" style="margin-top:4px;"><b>Várható beérkezés:</b> ${
-                etaUnknown ? "ismeretlen" : (eta ? eta : "-")
-              }</div>
-            </div>
+    function showLogin(message) {
+      root.innerHTML = `
+        <div style="max-width:420px;">
+          <div style="font-weight:900; margin-bottom:8px;">Patikai belépés</div>
+          <div style="font-size:13px; color:#6b7280; margin-bottom:10px;">
+            Kérlek add meg az admin jelszót.
           </div>
-
-          <div style="margin-top:10px;" class="pre"><b>Termékek:</b>\n${esc(o.itemsText)}</div>
-
-          <div class="row" style="margin-top:12px;">
-            <button class="btn green" type="button" onclick="openPanel('${esc(o.orderId)}','AZONNAL_ATVEHETO')">AZONNAL ÁTVEHETŐ</button>
-            <button class="btn blue" type="button" onclick="openPanel('${esc(o.orderId)}','RENDELHETO')">RENDELHETŐ</button>
-            <button class="btn red" type="button" onclick="openPanel('${esc(o.orderId)}','TERMEKHIANY')">TERMÉKHIÁNY</button>
-            <button class="btn yellow" type="button" onclick="openPanel('${esc(o.orderId)}','TELJESITVE')">TELJESÍTVE</button>
-            <button class="btn dark" type="button" onclick="openPanel('${esc(o.orderId)}','TOROLVE')">TÖRÖLVE</button>
-          </div>
-
-          <div class="panel hidden" id="panel-${esc(o.orderId)}"></div>
+          <input id="adminPw" type="password"
+            style="width:100%; padding:10px 12px; border:1px solid #d1d5db; border-radius:12px;"
+            placeholder="Jelszó" />
+          <button id="adminLoginBtn"
+            style="margin-top:10px; padding:10px 14px; border-radius:12px; border:0; background:#111827; color:#fff; font-weight:900; cursor:pointer;">
+            Belépés
+          </button>
+          <div id="adminLoginMsg" style="margin-top:10px; font-size:13px; color:#b91c1c; white-space:pre-wrap;"></div>
         </div>
       `;
-    }).join("");
-  }
 
-  function closeAllPanels() {
-    document.querySelectorAll(".panel").forEach(p => {
-      p.classList.add("hidden");
-      p.innerHTML = "";
+      const msgEl = document.getElementById("adminLoginMsg");
+      msgEl.textContent = message || "";
+
+      document.getElementById("adminLoginBtn").onclick = () => {
+        const pw = document.getElementById("adminPw").value || "";
+        msgEl.style.color = "#6b7280";
+        msgEl.textContent = "Ellenőrzés…";
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res && res.ok && res.token) {
+              setAdminToken(res.token);
+              bootstrapAdmin();
+            } else {
+              msgEl.style.color = "#b91c1c";
+              msgEl.textContent = (res && res.message) ? res.message : "Hibás jelszó.";
+            }
+          })
+          .withFailureHandler((err) => {
+            msgEl.style.color = "#b91c1c";
+            msgEl.textContent = "Hiba: " + (err && err.message ? err.message : err);
+          })
+          .verifyAdminPassword(pw);
+      };
+    }
+
+    function badgeForStatus(status) {
+      const s = String(status||"").toUpperCase();
+      if (s.includes("AZONNAL")) return { cls:"b-green", text:"AZONNAL ÁTVEHETŐ" };
+      if (s.includes("RENDEL")) return { cls:"b-blue", text:"NINCS KÉSZLETEN, DE RENDELHETŐ" };
+      if (s.includes("TERMÉK") || s.includes("TERMEK")) return { cls:"b-red", text:"TERMÉKHIÁNY" };
+      if (s.includes("TELJES")) return { cls:"b-yellow", text:"TELJESÍTVE" };
+      if (s.includes("TÖRÖ") || s.includes("TOROL")) return { cls:"b-dark", text:"TÖRÖLVE" };
+      return { cls:"b-gray", text:"FELDOLGOZATLAN" };
+    }
+
+    function parseMaybeDate(s) {
+      const x = String(s||"").trim();
+      // ha ISO, működik; ha üres, NaN
+      const d = new Date(x);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    function renderTopControls() {
+      const filters = [
+        { key:"FELDOLGOZATLAN", label:"csak feldolgozatlan" },
+        { key:"OSSZES", label:"összes" },
+        { key:"AZONNAL", label:"csak azonnal átvehető" },
+        { key:"RENDELHETO", label:"csak rendelhető" },
+        { key:"TERMEKHIANY", label:"csak termékhiány" },
+        { key:"TELJESITVE", label:"csak teljesítve" },
+        { key:"TOROLVE", label:"csak törölve" },
+      ];
+
+      return `
+        <div class="row" style="justify-content:space-between; gap:14px;">
+          <div class="row">
+            <div class="k">Szűrés:</div>
+            <div class="chips">
+              ${filters.map(f => {
+  const n = countByFilterKey_(ALL_ORDERS, f.key);
+  return `
+    <div class="chip ${CURRENT_FILTER===f.key ? "active":""}" data-filter="${f.key}">
+      ${esc(f.label)} <span style="opacity:.7;">(${n})</span>
+    </div>
+  `;
+}).join("")}
+
+            </div>
+          </div>
+
+          <div class="inline">
+            <div class="k">Rendezés:</div>
+
+            <select id="sortKey" class="mini">
+              <option value="statusTime">Utoljára módosítva</option>
+              <option value="orderId">Rendelésszám</option>
+            </select>
+
+            <select id="sortDir" class="mini">
+              <option value="desc">csökkenő</option>
+              <option value="asc">növekvő</option>
+            </select>
+          </div>
+        </div>
+      `;
+    }
+
+    function applyFilterSortAndRender() {
+      let list = Array.isArray(ALL_ORDERS) ? [...ALL_ORDERS] : [];
+
+      // filter
+      if (CURRENT_FILTER !== "OSSZES") {
+        list = list.filter(o => {
+          const s = String(o.status||"").toUpperCase();
+          if (CURRENT_FILTER === "FELDOLGOZATLAN") return s.includes("FELDOLGOZATLAN");
+          if (CURRENT_FILTER === "AZONNAL") return s.includes("AZONNAL");
+          if (CURRENT_FILTER === "RENDELHETO") return s.includes("RENDEL");
+          if (CURRENT_FILTER === "TERMEKHIANY") return s.includes("TERMÉK") || s.includes("TERMEK");
+          if (CURRENT_FILTER === "TELJESITVE") return s.includes("TELJES");
+          if (CURRENT_FILTER === "TOROLVE") return s.includes("TÖRÖ") || s.includes("TOROL");
+          return true;
+        });
+      }
+
+      // sort
+      const dirMul = (SORT_DIR === "asc") ? 1 : -1;
+      list.sort((a,b) => {
+        if (SORT_KEY === "orderId") {
+          const A = String(a.orderId||"");
+          const B = String(b.orderId||"");
+          return A.localeCompare(B, "hu") * dirMul;
+        }
+        // statusTime
+        const da = parseMaybeDate(a.statusTime) || new Date(0);
+        const db = parseMaybeDate(b.statusTime) || new Date(0);
+        return (da.getTime() - db.getTime()) * dirMul;
+      });
+
+      renderOrders(list);
+    }
+
+    function renderOrders(list) {
+      root.className = "";
+      root.innerHTML = renderTopControls() + `<div class="orders" id="orders"></div>`;
+
+      // hook controls
+      root.querySelectorAll(".chip").forEach(ch => {
+        ch.onclick = () => {
+          CURRENT_FILTER = ch.getAttribute("data-filter");
+          applyFilterSortAndRender();
+        };
+      });
+
+      const sortKeyEl = document.getElementById("sortKey");
+      const sortDirEl = document.getElementById("sortDir");
+      sortKeyEl.value = SORT_KEY;
+      sortDirEl.value = SORT_DIR;
+      sortKeyEl.onchange = () => { SORT_KEY = sortKeyEl.value; applyFilterSortAndRender(); };
+      sortDirEl.onchange = () => { SORT_DIR = sortDirEl.value; applyFilterSortAndRender(); };
+
+      const host = document.getElementById("orders");
+
+      if (!list || list.length === 0) {
+        host.innerHTML = `<div class="muted" style="padding:12px 2px;">Nincs találat.</div>`;
+        return;
+      }
+
+      host.innerHTML = list.map(o => renderOrderCard(o)).join("");
+
+      // bind actions
+      list.forEach(o => bindOrderCard(o));
+    }
+
+    function fmtEta(o) {
+      const unknown = !!o.etaUnknown;
+      const d = String(o.etaDate||"").trim();
+      if (unknown) return "ismeretlen";
+      if (d) return d;
+      return "—";
+    }
+
+    function renderOrderCard(o) {
+      const b = badgeForStatus(o.status);
+      const statusTime = String(o.statusTime||"").trim() || "—";
+      const eta = fmtEta(o);
+
+      return `
+        <div class="order" id="order_${esc(o.orderId)}">
+          <div class="orderTop">
+            <div>
+              <div style="font-weight:900;">${esc(o.orderId)}</div>
+              <div class="meta"><b>Név:</b> ${esc(o.name)} &nbsp; | &nbsp; <b>Email:</b> ${esc(o.email)}</div>
+              <div class="meta"><b>Utoljára módosítva:</b> ${esc(statusTime)} &nbsp; | &nbsp; <b>Várható beérkezés ideje</b> ${esc(eta)}</div>
+            </div>
+            <div>
+              <span class="badge ${b.cls}">${esc(b.text)}</span>
+            </div>
+          </div>
+
+          <div class="items"><b>Termékek:</b>\n${esc(o.itemsText)}</div>
+
+          <div class="actions">
+            <button class="btn btn-green" data-action="AZONNAL_ATVEHETO">AZONNAL ÁTVEHETŐ</button>
+            <button class="btn btn-blue" data-action="RENDELHETO">RENDELHETŐ</button>
+            <button class="btn btn-red" data-action="TERMEKHIANY">TERMÉKHIÁNY</button>
+            <button class="btn btn-yellow" data-action="TELJESITVE">TELJESÍTVE</button>
+            <button class="btn btn-dark" data-action="TOROLVE">TÖRÖLVE</button>
+          </div>
+
+          <div class="panel" id="panel_${esc(o.orderId)}" style="display:none;"></div>
+          <div id="msg_${esc(o.orderId)}" style="margin-top:10px; font-size:13px;"></div>
+        </div>
+      `;
+    }
+
+    function bindOrderCard(o) {
+      const card = document.getElementById("order_" + o.orderId);
+      const panel = document.getElementById("panel_" + o.orderId);
+      const msg = document.getElementById("msg_" + o.orderId);
+
+      const buttons = card.querySelectorAll("button[data-action]");
+      buttons.forEach(btn => {
+        btn.onclick = () => {
+          msg.className = "";
+          msg.textContent = "";
+          const action = btn.getAttribute("data-action");
+          openPanel(o, action, panel, msg);
+        };
+      });
+    }
+
+    function openPanel(order, action, panel, msg) {
+      const statusLabelMap = {
+        "AZONNAL_ATVEHETO":"AZONNAL ÁTVEHETŐ",
+        "RENDELHETO":"NINCS KÉSZLETEN, DE RENDELHETŐ",
+        "TERMEKHIANY":"TERMÉKHIÁNY",
+        "TELJESITVE":"TELJESÍTVE",
+        "TOROLVE":"TÖRÖLVE"
+      };
+
+      const needsEta = (action === "RENDELHETO");
+      const etaOrUnknown = (action === "TERMEKHIANY");
+
+      const showSub = (action === "RENDELHETO" || action === "TERMEKHIANY");
+      const showCancelReason = (action === "TOROLVE");
+
+      panel.style.display = "block";
+      panel.innerHTML = `
+        <div style="font-weight:900; margin-bottom:8px;">Státusz váltás: ${esc(statusLabelMap[action] || action)}</div>
+
+        ${needsEta ? `
+          <label>Várható érkezés dátum (kötelező)</label>
+          <input type="date" id="eta_${esc(order.orderId)}" />
+        ` : ``}
+
+        ${etaOrUnknown ? `
+          <label>Várható érkezés dátum (opcionális)</label>
+          <input type="date" id="eta_${esc(order.orderId)}" />
+          <div class="small">
+            <label style="display:flex; gap:8px; align-items:center; font-weight:800; margin-top:10px;">
+              <input type="checkbox" id="etaUnk_${esc(order.orderId)}" />
+              Várható dátum ismeretlen
+            </label>
+          </div>
+        ` : ``}
+
+        <label>Megjegyzés betegnek (opcionális)</label>
+        <textarea id="note_${esc(order.orderId)}" placeholder="Beteg látja emailben, nem kötelező a kitöltése."></textarea>
+
+        ${showSub ? `
+          <hr class="sep" style="margin:12px 0;">
+          <div style="font-weight:900; margin-bottom:6px;">Helyettesítő készítmény (opcionális)</div>
+
+          <label style="display:flex; gap:8px; align-items:center; font-weight:800;">
+            <input type="checkbox" id="subAvail_${esc(order.orderId)}" />
+            Helyettesítő készítmény elérhető
+          </label>
+
+          <label style="display:flex; gap:8px; align-items:center; font-weight:800; margin-top:8px;">
+            <input type="checkbox" id="subOrder_${esc(order.orderId)}" />
+            Helyettesítő készítmény rendelhető
+          </label>
+
+          <div id="subEtaWrap_${esc(order.orderId)}" style="display:none; margin-top:8px;">
+            <label>Helyettesítő várható érkezés dátum (kötelező, ha rendelhető)</label>
+            <input type="date" id="subEta_${esc(order.orderId)}" />
+          </div>
+        ` : ``}
+
+        ${showCancelReason ? `
+          <hr class="sep" style="margin:12px 0;">
+          <label>Törlés indok (opcionális)</label>
+          <textarea id="cancelReason_${esc(order.orderId)}" placeholder="Nem kötelező…"></textarea>
+        ` : ``}
+
+        <div class="small" style="margin-top:10px;">
+          A mentés azonnali email küldéssel jár.
+        </div>
+
+        <div class="row" style="margin-top:12px;">
+          <button class="btn btn-gray" type="button" id="cancelPanel_${esc(order.orderId)}">Mégse</button>
+          <button class="btn btn-dark" type="button" id="save_${esc(order.orderId)}">Mentés + email</button>
+        </div>
+      `;
+
+      // sub checkbox -> show/hide subEta
+      if (showSub) {
+        const subOrder = document.getElementById("subOrder_" + order.orderId);
+        const wrap = document.getElementById("subEtaWrap_" + order.orderId);
+        subOrder.onchange = () => { wrap.style.display = subOrder.checked ? "block" : "none"; };
+      }
+
+      document.getElementById("cancelPanel_" + order.orderId).onclick = () => {
+        panel.style.display = "none";
+        panel.innerHTML = "";
+      };
+
+      document.getElementById("save_" + order.orderId).onclick = () => {
+        const ok = confirm(`Biztosan át akarod tenni a rendelést "${order.orderId}" státuszba: ${statusLabelMap[action] || action}?\n\nEz azonnali email küldéssel jár.`);
+        if (!ok) return;
+
+        const payload = {
+          adminToken: getAdminToken(),
+          orderId: order.orderId,
+          status: action
+        };
+
+        const noteEl = document.getElementById("note_" + order.orderId);
+        payload.note = (noteEl && noteEl.value) ? noteEl.value.trim() : "";
+
+        // ETA
+        const etaEl = document.getElementById("eta_" + order.orderId);
+        const etaUnkEl = document.getElementById("etaUnk_" + order.orderId);
+
+        payload.etaDate = etaEl ? (etaEl.value || "") : "";
+        payload.etaUnknown = etaUnkEl ? !!etaUnkEl.checked : false;
+
+        // Validáció frontend oldalon is
+        if (action === "RENDELHETO") {
+          if (!payload.etaDate) {
+            msg.className = "err";
+            msg.textContent = "RENDELHETŐ státuszhoz kötelező a várható érkezés dátum.";
+            return;
+          }
+          if (payload.etaUnknown) {
+            msg.className = "err";
+            msg.textContent = "RENDELHETŐ esetén nem lehet ismeretlen ETA.";
+            return;
+          }
+        }
+
+        // Substitute
+        if (action === "RENDELHETO" || action === "TERMEKHIANY") {
+          const subAvail = document.getElementById("subAvail_" + order.orderId);
+          const subOrder = document.getElementById("subOrder_" + order.orderId);
+          const subEta = document.getElementById("subEta_" + order.orderId);
+
+          payload.substituteAvailable = subAvail ? !!subAvail.checked : false;
+          payload.substituteOrderable = subOrder ? !!subOrder.checked : false;
+          payload.substituteEtaDate = subEta ? (subEta.value || "") : "";
+
+          if (payload.substituteOrderable && !payload.substituteEtaDate) {
+            msg.className = "err";
+            msg.textContent = "Helyettesítő rendelhető esetén kötelező a helyettesítő ETA dátum.";
+            return;
+          }
+        }
+
+        // cancel reason
+        if (action === "TOROLVE") {
+          const cr = document.getElementById("cancelReason_" + order.orderId);
+          payload.cancelReason = cr ? (cr.value || "").trim() : "";
+        }
+
+        msg.className = "muted";
+        msg.textContent = "Mentés…";
+
+        // 1) első próbálkozás
+        google.script.run
+          .withSuccessHandler((res) => {
+            // NO_CHANGE → kérdezzünk rá
+            if (res && res.code === "NO_CHANGE") {
+              const ok2 = confirm(res.message + "\n\nKüldjünk így is emailt?");
+              if (!ok2) {
+                msg.className = "muted";
+                msg.textContent = "Nem történt módosítás.";
+                return;
+              }
+              payload.forceSend = true;
+
+              google.script.run
+                .withSuccessHandler((res2) => {
+                  if (res2 && res2.ok) {
+                    msg.className = "ok";
+                    msg.textContent = "Mentve. Email elküldve.";
+                    panel.style.display = "none";
+                    loadOrders();
+                  } else {
+                    msg.className = "err";
+                    msg.textContent = (res2 && res2.message) ? res2.message : "Nem sikerült menteni.";
+                  }
+                })
+                .withFailureHandler((err2) => {
+                  const m2 = (err2 && err2.message) ? err2.message : String(err2||"");
+                  if (isAuthErrorMessage(m2)) { clearAdminToken(); showLogin(m2); return; }
+                  msg.className = "err";
+                  msg.textContent = "Hiba: " + m2;
+                })
+                .updateOrderStatusAdmin(payload);
+
+              return;
+            }
+
+            // normál siker
+            if (res && res.ok) {
+              msg.className = "ok";
+              msg.textContent = "Mentve. Email elküldve.";
+              panel.style.display = "none";
+              loadOrders();
+              return;
+            }
+
+            msg.className = "err";
+            msg.textContent = (res && res.message) ? res.message : "Nem sikerült menteni.";
+          })
+          .withFailureHandler((err) => {
+            const m = (err && err.message) ? err.message : String(err||"");
+            if (isAuthErrorMessage(m)) { clearAdminToken(); showLogin(m); return; }
+            msg.className = "err";
+            msg.textContent = "Hiba: " + m;
+          })
+          .updateOrderStatusAdmin(payload);
+      };
+    }
+function row(n, isArchived) {
+  const text = String(n && (n.text || n.message || n.title) || "");
+  const isExpiry = !!(n && n.orderId) && /azonnal\s*átvehető/i.test(text) && /16:00|lejár/i.test(text);
+
+  return `
+    <div style="display:flex; gap:10px; align-items:flex-start; justify-content:space-between; padding:10px 0; border-top:1px solid #e5e7eb;">
+      <div style="min-width:0;">
+        <div style="font-weight:700;">${esc(n.title || "Értesítés")}</div>
+        <div class="muted" style="white-space:pre-wrap;">${esc(text)}</div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+        <label style="display:flex; gap:6px; align-items:center; font-size:12px; color:#6b7280;">
+          <input type="checkbox" ${isArchived ? "checked" : ""} data-notif-id="${esc(n.id||"")}" />
+          Archiv
+        </label>
+
+        ${(!isArchived && isExpiry) ? `
+          <button type="button"
+            style="border:0; border-radius:12px; padding:10px 12px; font-size:13px; cursor:pointer; background:#111827; color:#fff; font-weight:800;"
+            onclick='sendExpiryReminderFromNotif(${JSON.stringify({ orderId: n.orderId, id: n.id, text: text, title: n.title || "" }).replace(/'/g,"&#39;")})'>
+            Emlékeztető email
+          </button>
+        ` : ``}
+      </div>
+    </div>
+  `;
+}
+
+    function loadOrders() {
+      root.className = "";
+      root.textContent = "Foglalások betöltése…";
+
+      const token = getAdminToken();
+      if (!token) {
+        showLogin("Nincs admin token. Jelentkezz be.");
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler((orders) => {
+          ALL_ORDERS = Array.isArray(orders) ? orders : [];
+          applyFilterSortAndRender();
+        })
+        .withFailureHandler((err) => {
+          const m = (err && err.message) ? err.message : String(err||"");
+          if (isAuthErrorMessage(m)) { clearAdminToken(); showLogin(m); return; }
+          root.className = "err";
+          root.textContent = "Hiba: " + m;
+        })
+        .getOrdersForAdmin(token);
+    }
+
+    function bootstrapAdmin() {
+  loadOrders();
+  loadNotifications();   // ⬅️ IDE
+}
+
+    refreshBtn.onclick = () => loadOrders();
+    logoutBtn.onclick = () => { clearAdminToken(); showLogin("Kijelentkezve."); };
+
+    // start
+    (function init() {
+      const token = getAdminToken();
+      if (!token) showLogin("");
+      else bootstrapAdmin();
+    })();
+    function renderNotificationsBox(data) {
+  const box = document.getElementById("notifBar");
+  if (!box) return;
+
+  const active = (data && Array.isArray(data.active)) ? data.active : [];
+  const archived = (data && Array.isArray(data.archived)) ? data.archived : [];
+
+  const row = (n, isArchived) => `
+    <div style="display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid #e5e7eb; border-radius:12px; background:#fff; margin:8px 0;">
+      <input type="checkbox" ${isArchived ? "checked" : ""} data-arch="${isArchived ? "1":"0"}" data-id="${esc(n.id)}" style="margin-top:3px;" />
+      <div style="flex:1;">
+        <div style="font-weight:700;">${esc(n.message)}</div>
+        <div style="font-size:12px; color:#6b7280; margin-top:4px;">
+          Order: <b>${esc(n.orderId)}</b> · ${esc(n.type)} · ${esc(n.createdAt)}
+        </div>
+      </div>
+    </div>
+  `;
+
+  box.innerHTML = `
+    <div style="background:#ffffff; border:1px solid #e5e7eb; border-radius:14px; padding:12px 14px;">
+      <div style="font-weight:800; margin-bottom:6px;">Értesítések</div>
+      <div class="muted">Értesítés érkezik, amennyiben várható beérkezése eljött egy készítménynek, illetve adott nap 16:00-kor jelez, amennyiben aznap lejár az egyik azonnal átvehető státuszban lévő rendelés.</div>
+      ${active.length ? active.map(n => row(n,false)).join("") : `<div style="color:#6b7280; font-size:13px;">Nincs új értesítés.</div>`}
+<div class="muted">Értesítések pipálással archiválhatóak.</div>
+      <details style="margin-top:10px;">
+        <summary style="cursor:pointer; font-weight:700;">Archivált értesítések (${archived.length})</summary>
+        <div style="margin-top:8px;">
+          ${archived.length ? archived.map(n => row(n,true)).join("") : `<div style="color:#6b7280; font-size:13px;">Nincs archivált értesítés.</div>`}
+        </div>
+      </details>
+    </div>
+  `;
+
+  // archiváló checkbox click
+  box.querySelectorAll('input[type="checkbox"][data-id]').forEach(cb => {
+    cb.addEventListener("change", () => {
+      const id = cb.getAttribute("data-id");
+      const archivedNow = cb.checked;
+
+      const payload = { notifId: id, archived: archivedNow, adminToken: getAdminToken() };
+
+      google.script.run
+        .withSuccessHandler(() => loadNotifications())
+        .withFailureHandler(err => {
+          alert("Archiválás hiba: " + (err && err.message ? err.message : err));
+          cb.checked = !archivedNow; // vissza
+        })
+        .archiveAdminNotification(payload.adminToken, payload.notifId, payload.archived);
     });
-  }
+  });
+}
 
-  function openPanel(orderId, targetStatus) {
-    closeAllPanels();
+function sendExpiryReminderFromNotif(n) {
+  if (!n || !n.orderId) return;
 
-    const card = document.querySelector(`.order[data-order="${CSS.escape(orderId)}"]`);
-    const panel = document.getElementById(`panel-${orderId}`);
-    if (!card || !panel) return;
-
-    const statusName = statusLabel(targetStatus);
-
-    const needsEta = (targetStatus === "RENDELHETO" || targetStatus === "TERMEKHIANY");
-    const needsCancelReason = (targetStatus === "TOROLVE");
-
-    panel.classList.remove("hidden");
-    panel.innerHTML = `
-      <div class="row" style="justify-content:space-between;">
-        <div><b>Státuszváltás:</b> ${esc(statusName)}</div>
-        <button class="btn ghost" type="button" onclick="closeAllPanels()">Bezárás</button>
-      </div>
-
-      <div style="margin-top:10px;">
-        <div class="small"><b>Megjegyzés (opcionális):</b> ez bekerül a vásárlói emailbe is.</div>
-        <textarea id="note-${esc(orderId)}" placeholder="Pl.: félrerakva, átadáskor személyi igazolvány, stb. (nem kötelező)"></textarea>
-      </div>
-
-      ${needsEta ? `
-        <div class="hr"></div>
-        <div class="row">
-          <div class="w200">
-            <div class="small"><b>Várható érkezés dátum</b> ${targetStatus==="RENDELHETO" ? "(kötelező)" : "(opcionális / vagy ismeretlen)"}</div>
-            <input class="input" type="date" id="eta-${esc(orderId)}" />
-          </div>
-
-          <label class="radio" style="margin-top:18px;">
-            <input type="checkbox" id="etaU-${esc(orderId)}" />
-            várható dátum ismeretlen
-          </label>
-        </div>
-
-        <div class="hr"></div>
-
-        <div class="row">
-          <label class="radio">
-            <input type="checkbox" id="subAvail-${esc(orderId)}" />
-            helyettesítő készítmény azonnal átvehető
-          </label>
-
-          <label class="radio">
-            <input type="checkbox" id="subOrder-${esc(orderId)}" />
-            helyettesítő készítmény rendelhető
-          </label>
-
-          <div class="w200">
-            <div class="small"><b>Helyettesítő várható érkezés</b> (csak ha “rendelhető” be van pipálva)</div>
-            <input class="input" type="date" id="subEta-${esc(orderId)}" disabled />
-          </div>
-        </div>
-      ` : ""}
-
-      ${needsCancelReason ? `
-        <div class="hr"></div>
-        <div class="small"><b>Törlés indoklása (opcionális):</b> ez is bekerül a vásárlói emailbe.</div>
-        <textarea id="cancelReason-${esc(orderId)}" placeholder="Pl.: nem elérhető recept, hibás adat, vásárló kérte, stb. (nem kötelező)"></textarea>
-      ` : ""}
-
-      <div class="hr"></div>
-
-      <label class="radio">
-        <input type="checkbox" id="confirm-${esc(orderId)}" />
-        Biztosan át akarom tenni <b>${esc(orderId)}</b> rendelést <b>${esc(statusName)}</b> státuszba (email küldéssel)
-      </label>
-
-      <div class="row" style="margin-top:10px;">
-        <button class="btn ${targetStatus==="AZONNAL_ATVEHETO"?"green":targetStatus==="RENDELHETO"?"blue":targetStatus==="TERMEKHIANY"?"red":targetStatus==="TELJESITVE"?"yellow":"dark"}"
-          type="button" onclick="submitStatus('${esc(orderId)}','${esc(targetStatus)}')">
-          Mentés + Email küldése
-        </button>
-        <div id="msg-${esc(orderId)}" class="small"></div>
-      </div>
-    `;
-
-    // dinamikus UX: ha etaUnknown be van pipálva, tiltjuk a dátumot
-    if (needsEta) {
-      const eta = document.getElementById(`eta-${orderId}`);
-      const etaU = document.getElementById(`etaU-${orderId}`);
-      const subOrder = document.getElementById(`subOrder-${orderId}`);
-      const subEta = document.getElementById(`subEta-${orderId}`);
-
-      const syncEta = () => {
-        const u = !!etaU.checked;
-        eta.disabled = u;
-        if (u) eta.value = "";
-      };
-      etaU.addEventListener("change", syncEta);
-      syncEta();
-
-      const syncSub = () => {
-        const on = !!subOrder.checked;
-        subEta.disabled = !on;
-        if (!on) subEta.value = "";
-      };
-      subOrder.addEventListener("change", syncSub);
-      syncSub();
-    }
-
-    panel.scrollIntoView({ behavior:"smooth", block:"start" });
-  }
-
- function submitStatus(orderId, targetStatus) {
-  const msg = document.getElementById(`msg-${orderId}`);
-  msg.className = "small";
-  msg.textContent = "";
-
-  // ✅ DUPLA EMAIL ELLEN: ha nem változik a státusz, kérdezzünk rá külön
-  const current = (Array.isArray(ALL_ORDERS) ? ALL_ORDERS : []).find(
-    o => String(o.orderId) === String(orderId)
+  const ok = confirm(
+    'Biztosan elküldöd az emlékeztető emailt?\n\n' +
+    'Ez azonnali email küldéssel jár a vásárlónak + értesítés email neked.'
   );
-  const currentStatus = current ? String(current.status || "") : "";
-
-  let forceEmail = false;
-  if (currentStatus && currentStatus === String(targetStatus)) {
-    const ok = window.confirm(
-      `A státusz nem változik (most is: ${currentStatus}).\n\n` +
-      `Biztosan szeretnél így is emailt küldeni a vásárlónak?`
-    );
-    if (!ok) {
-      msg.className = "small";
-      msg.textContent = "Nem küldtünk emailt (státusz nem változott).";
-      return;
-    }
-    forceEmail = true;
-  }
-
-  const confirmEl = document.getElementById(`confirm-${orderId}`);
-  if (!confirmEl || !confirmEl.checked) {
-    msg.className = "err";
-    msg.textContent = "Kérlek pipáld be a megerősítést.";
-    return;
-  }
-
-  const noteEl = document.getElementById(`note-${orderId}`);
-  const note = noteEl ? noteEl.value.trim() : "";
-
-  let etaDate = "";
-  let etaUnknown = false;
-
-  let substituteAvailable = false;
-  let substituteOrderable = false;
-  let substituteEtaDate = "";
-
-  let cancelReason = "";
-
-  const needsEta = (targetStatus === "RENDELHETO" || targetStatus === "TERMEKHIANY");
-  if (needsEta) {
-    const etaEl = document.getElementById(`eta-${orderId}`);
-    const etaUEl = document.getElementById(`etaU-${orderId}`);
-
-    etaUnknown = !!(etaUEl && etaUEl.checked);
-    etaDate = etaEl ? String(etaEl.value || "") : "";
-
-    if (targetStatus === "RENDELHETO") {
-      // rendelhető: ETA kötelező (nem lehet ismeretlen)
-      if (etaUnknown) {
-        msg.className = "err";
-        msg.textContent = "RENDELHETŐ státusznál a várható dátum kötelező (nem lehet ismeretlen).";
-        return;
-      }
-      if (!etaDate) {
-        msg.className = "err";
-        msg.textContent = "RENDELHETŐ státusznál add meg a várható érkezés dátumát.";
-        return;
-      }
-    }
-
-    const subAvailEl = document.getElementById(`subAvail-${orderId}`);
-    const subOrderEl = document.getElementById(`subOrder-${orderId}`);
-    const subEtaEl = document.getElementById(`subEta-${orderId}`);
-
-    substituteAvailable = !!(subAvailEl && subAvailEl.checked);
-    substituteOrderable = !!(subOrderEl && subOrderEl.checked);
-    substituteEtaDate = subEtaEl ? String(subEtaEl.value || "") : "";
-
-    if (substituteOrderable && !substituteEtaDate) {
-      msg.className = "err";
-      msg.textContent = "Ha a “helyettesítő készítmény rendelhető” be van pipálva, kötelező a helyettesítő várható dátum.";
-      return;
-    }
-  }
-
-  if (targetStatus === "TOROLVE") {
-    const cr = document.getElementById(`cancelReason-${orderId}`);
-    cancelReason = cr ? cr.value.trim() : "";
-  }
+  if (!ok) return;
 
   const payload = {
-    orderId: orderId,
-    status: targetStatus,
-    note: note,
-    etaDate: etaDate,
-    etaUnknown: etaUnknown,
-    substituteAvailable: substituteAvailable,
-    substituteOrderable: substituteOrderable,
-    substituteEtaDate: substituteEtaDate,
-    cancelReason: cancelReason,
-    forceEmail: forceEmail // ✅ EZ HIÁNYZOTT
+    adminToken: getAdminToken(),
+    orderId: n.orderId
   };
 
-  msg.textContent = "Mentés folyamatban…";
-
-  payload.adminToken = getAdminToken();
-
-google.script.run
-  .withSuccessHandler((res) => {
-  // 1) NO_CHANGE = kérdezz rá
-  if (res && res.code === "NO_CHANGE") {
-    const ok = confirm(res.message + "\n\nKüldjünk így is emailt?");
-    if (!ok) return;
-
-    payload.forceSend = true;
-payload.adminToken = getAdminToken();
-
-    google.script.run
-      .withSuccessHandler((res2) => {
-        if (res2 && res2.ok) {
-          msg.className = "ok";
-          msg.textContent = "Email elküldve (státusz nem változott).";
-          loadOrders();
-        } else {
-          msg.className = "err";
-          msg.textContent = (res2 && res2.message) ? res2.message : "Nem sikerült.";
-        }
-      })
-      .withFailureHandler((err2) => {
-        msg.className = "err";
-        msg.textContent = "Hiba: " + (err2 && err2.message ? err2.message : err2);
-      })
-      .updateOrderStatusAdmin(payload);
-
-    return;
-  }
-
-  // 2) normál siker
-  if (res && res.ok) {
-    msg.className = "ok";
-    msg.textContent = "Mentve. Email elküldve.";
-    loadOrders();
-    return;
-  }
-
-  // 3) normál “nem ok”
-  msg.className = "err";
-  msg.textContent = (res && res.message) ? res.message : "Nem sikerült menteni.";
-})
-
-
+  google.script.run
+    .withSuccessHandler((res) => {
+      if (res && res.ok) {
+        alert("Emlékeztető email elküldve.");
+        loadNotifications(); // frissítjük a sávot
+        // opcionális: loadOrders(); ha akarod, hogy a kártyák is frissüljenek
+      } else {
+        alert((res && res.message) ? res.message : "Nem sikerült elküldeni.");
+      }
+    })
+    .withFailureHandler((err) => {
+      alert("Hiba: " + (err && err.message ? err.message : err));
+    })
+    .sendExpiryReminderAdmin(payload);
 }
-  function loadOrders() {
-    root.className = "";
-    root.textContent = "Foglalások betöltése…";
 
-    const payload = { adminToken: getAdminToken() };
-payload.adminToken = getAdminToken();
+function loadNotifications() {
+  const box = document.getElementById("notifBar");
+  if (box) box.innerHTML = `<div style="color:#6b7280; font-size:13px;">Értesítések betöltése…</div>`;
 
-    google.script.run
-  .withSuccessHandler((orders) => {
-    ALL_ORDERS = Array.isArray(orders) ? orders : [];
-    applyFilterSort();
-  })
-  .withFailureHandler((err) => {
-    const msg = (err && err.message) ? err.message : String(err);
-
-    // ha token gond, dobd vissza loginra
-    if (msg.toLowerCase().includes("token") || msg.toLowerCase().includes("jogosulatlan")) {
-      clearAdminToken();
-      showLogin(msg);
-      return;
-    }
-
-    root.className = "err";
-    root.textContent = "Hiba: " + msg;
-  })
-  .getOrdersForAdmin(getAdminToken());  // ✅ EZ A LÉNYEG
-
-
-  // events
-  document.querySelectorAll('input[name="flt"]').forEach(r => r.addEventListener("change", applyFilterSort));
-  sortKeyEl.addEventListener("change", applyFilterSort);
-  sortDirEl.addEventListener("change", applyFilterSort);
-  refreshBtn.addEventListener("click", loadOrders);
-
-  // init
-  loadOrders();
-  function bootstrapAdmin() {
   const token = getAdminToken();
-  if (!token) {
-    showLogin();
-    return;
-  }
-  loadOrders();
+  google.script.run
+    .withSuccessHandler(renderNotificationsBox)
+    .withFailureHandler(err => {
+      if (box) box.innerHTML = `<div style="color:#b91c1c; font-size:13px;">Értesítések hiba: ${esc(err && err.message ? err.message : err)}</div>`;
+    })
+    .getAdminNotifications(token);
+}
+function countByFilterKey_(orders, key) {
+  const list = Array.isArray(orders) ? orders : [];
+
+  const match = (o) => {
+    const s = String(o.status || "").toUpperCase();
+    if (key === "FELDOLGOZATLAN") return s.includes("FELDOLGOZATLAN");
+    if (key === "AZONNAL") return s.includes("AZONNAL");
+    if (key === "RENDELHETO") return s.includes("RENDEL");
+    if (key === "TERMEKHIANY") return s.includes("TERMÉK") || s.includes("TERMEK");
+    if (key === "TELJESITVE") return s.includes("TELJES");
+    if (key === "TOROLVE") return s.includes("TÖRÖ") || s.includes("TOROL");
+    if (key === "OSSZES") return true;
+    return true;
+  };
+
+  return list.filter(match).length;
 }
 
-// 👇 EZ A LEGALJÁN
-bootstrapAdmin();
-</script>
+  </script>
 </body>
 </html>
