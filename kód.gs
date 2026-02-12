@@ -1,47 +1,60 @@
+function sha256Hex_(s) {
+  var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, s, Utilities.Charset.UTF_8);
+  return bytes.map(function(b) {
+    var v = (b < 0) ? b + 256 : b;
+    return ("0" + v.toString(16)).slice(-2);
+  }).join("");
+}
 // ===== ADMIN LOGIN (EGY JELSZÓ) =====
 
 // 1) Első beállítás: Apps Script -> Project Settings -> Script properties
-// ADMIN_PASSWORD_HASH = <sha256 hash base64>
+// ADMIN_PASSWORD_HASH = <sha256 hash HEX>
 // (Lentebb adok egy helper függvényt is a hash generálásra.)
 
 var ADMIN_TOKEN_TTL_SECONDS = 60 * 60 * 6; // 6 óra
+function verifyAdminPassword(pw) {
+  pw = String(pw || "").trim();
+  if (!pw) return { ok: false, message: "Hiányzó jelszó." };
 
-function sha256Base64_(s) {
-  var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, s, Utilities.Charset.UTF_8);
-  return Utilities.base64Encode(bytes);
-}
-
-function verifyAdminPassword_(password) {
   var props = PropertiesService.getScriptProperties();
-  var expectedHash = props.getProperty("ADMIN_PASSWORD_HASH") || "";
-  if (!expectedHash) throw new Error("Nincs beállítva ADMIN_PASSWORD_HASH a Script properties-ben.");
+  var storedHash = props.getProperty("ADMIN_PASSWORD_HASH");
+  if (!storedHash) return { ok: false, message: "Nincs beállítva admin jelszó." };
 
-  var hash = sha256Base64_(String(password || ""));
-  if (hash !== expectedHash) return { ok: false, message: "Hibás jelszó." };
+  var inputHash = sha256Hex_(pw);
 
-  // token kiadás
+  if (inputHash !== storedHash) {
+    return { ok: false, message: "Hibás jelszó." };
+  }
+
+  // ✅ token generálás + cache-be mentés (6 óra)
   var token = Utilities.getUuid();
-  var cache = CacheService.getScriptCache();
-  cache.put("ADMIN_TOKEN_" + token, "1", ADMIN_TOKEN_TTL_SECONDS);
+  CacheService.getScriptCache().put(
+    "ADMIN_TOKEN_" + token,
+    "1",
+    ADMIN_TOKEN_TTL_SECONDS
+  );
 
-  return { ok: true, token: token, ttlSeconds: ADMIN_TOKEN_TTL_SECONDS };
+  return { ok: true, token: token };
 }
+
+
+
 
 function assertAdmin_(token) {
-  var t = String(token || "").trim();
-  if (!t) throw new Error("Nincs admin token (jelentkezz be újra).");
+  token = String(token || "");
+  if (!token) throw new Error("Nincs admin token.");
 
-  var cache = CacheService.getScriptCache();
-  var ok = cache.get("ADMIN_TOKEN_" + t);
-  if (!ok) throw new Error("Lejárt / érvénytelen admin token (jelentkezz be újra).");
+  var ok = CacheService
+    .getScriptCache()
+    .get("ADMIN_TOKEN_" + token);
+
+  if (!ok) {
+    throw new Error("Admin jogosultság lejárt vagy érvénytelen.");
+  }
 }
 
-function getOrdersForAdmin(payload) {
-  payload = payload || {};
-  var adminToken = String(payload.adminToken || "");
-
-  // ✅ token ellenőrzés (itt kapjuk meg a frontendtől)
-  assertAdmin_(adminToken);
+function getOrdersForAdmin(adminToken) {
+  assertAdmin_(adminToken);   // ✅ itt már a paramétert ellenőrzi
 
   try {
     var ss = SpreadsheetApp.openById("1nFZqVz1ngIToHZGoO29ExH2sLTjsMy8nCBMETf4YHeU");
@@ -58,7 +71,6 @@ function getOrdersForAdmin(payload) {
     var out = [];
     for (var i = 0; i < values.length; i++) {
       var r = values[i];
-
       out.push({
         rowNumber: i + 2,
         timestamp: r[0] ? String(r[0]) : "",
@@ -76,9 +88,10 @@ function getOrdersForAdmin(payload) {
 
     return out.reverse();
   } catch (e) {
-    return [];
+    return []; // ✅ sose legyen null
   }
 }
+
 
 function doGet(e) {
   var page = (e && e.parameter && e.parameter.page) ? String(e.parameter.page).toLowerCase() : "";
@@ -354,6 +367,7 @@ var htmlBodyCustomer =
     '<p><strong>Szent György Gyógyszertár</strong><br>' +
       '8060 Mór, Köztársaság tér 1.<br>' +
       '📞 (06 22) 407 036</p>' +
+      'H-P: 8:00 - 17:30  |  SZ: 8:00 - 12:00  |  V: Z' +
     '<p><a href="https://gyogyszertarmor.hu" target="_blank">www.gyogyszertarmor.hu</a></p>' +
 
   '</div>';
@@ -488,6 +502,7 @@ function sendStatusEmail_(toEmail, customerName, orderId, itemsText, status, eta
       '</p>' +
       '<hr style="margin:20px 0;">' +
       '<p><strong>Szent György Gyógyszertár</strong><br>8060 Mór, Köztársaság tér 1.<br>📞 (06 22) 407 036</p>' +
+      'H-P: 8:00 - 17:30  |  SZ: 8:00 - 12:00  |  V: Z' +
       '<p><a href="https://gyogyszertarmor.hu" target="_blank">www.gyogyszertarmor.hu</a></p>' +
     '</div>';
 
@@ -569,6 +584,7 @@ function buildStatusEmailHtml_(payload) {
     + '<p style="margin:0; font-size:14px;"><b>Szent György Gyógyszertár</b><br>'
     + '8060 Mór, Köztársaság tér 1.<br>'
     + '📞 (06 22) 407 036</p>'
+    + 'H-P: 8:00 - 17:30  |  SZ: 8:00 - 12:00  |  V: Z' +
     + '<p style="margin:10px 0 0;"><a href="https://gyogyszertarmor.hu" target="_blank">www.gyogyszertarmor.hu</a></p>'
     + '</div>';
 }
@@ -982,6 +998,7 @@ function sendStatusEmailToCustomer_(ctx) {
       cancelLinkHtml +
       "<hr style='border:none; border-top:1px solid #e5e7eb; margin:18px 0;'>" +
       "<p style='margin:0;'><b>Szent György Gyógyszertár</b><br>8060 Mór, Köztársaság tér 1.<br>📞 (06 22) 407 036</p>" +
+      
       "<p style='margin:10px 0 0;'><a href='https://gyogyszertarmor.hu' target='_blank'>www.gyogyszertarmor.hu</a></p>" +
     "</div>";
 
@@ -1025,5 +1042,217 @@ function findRowByOrderId_(sheet, orderId) {
     if (String(vals[i][0] || "").trim() === orderId) return i + 2;
   }
   return 0;
+}
+/*******************************
+ * ADMIN ÉRTESÍTÉSEK (Sheet alapú)
+ *******************************/
+
+function getAdminNotifications(adminToken) {
+  assertAdmin_(adminToken);
+
+  var orders = getOrdersForAdmin(adminToken) || [];
+  // generálás + sheet-be mentés (duplikáció nélkül)
+  generateNotificationsFromOrders_(orders);
+
+  // visszaolvasás: aktív + archiv
+  return readNotifications_();
+}
+
+function archiveAdminNotification(adminToken, notifId, archived) {
+  assertAdmin_(adminToken);
+
+  notifId = String(notifId || "").trim();
+  if (!notifId) return { ok:false, message:"Hiányzó notifId." };
+
+  var sh = ensureNotifsSheet_();
+  var lastRow = sh.getLastRow();
+  if (lastRow < 2) return { ok:false, message:"Nincs értesítés." };
+
+  var idCol = 1;        // A
+  var archivedCol = 6;  // F
+  var archivedAtCol = 7;// G
+
+  var values = sh.getRange(2, 1, lastRow - 1, 7).getValues();
+  for (var i=0; i<values.length; i++) {
+    var rowId = String(values[i][0] || "");
+    if (rowId === notifId) {
+      sh.getRange(i+2, archivedCol).setValue(archived ? true : false);
+      sh.getRange(i+2, archivedAtCol).setValue(archived ? new Date() : "");
+      return { ok:true };
+    }
+  }
+  return { ok:false, message:"Nem található notifId." };
+}
+
+function ensureNotifsSheet_() {
+  var ss = SpreadsheetApp.openById("1nFZqVz1ngIToHZGoO29ExH2sLTjsMy8nCBMETf4YHeU");
+  var sh = ss.getSheetByName("ADMIN_ertesitesek");
+  if (!sh) {
+    sh = ss.insertSheet("ADMIN_ertesitesek");
+    sh.appendRow(["id","createdAt","orderId","type","message","archived","archivedAt"]);
+  }
+  return sh;
+}
+
+function readNotifications_() {
+  var sh = ensureNotifsSheet_();
+  var lastRow = sh.getLastRow();
+  if (lastRow < 2) return { active:[], archived:[] };
+
+  var values = sh.getRange(2,1,lastRow-1,7).getValues();
+  var active = [];
+  var archived = [];
+
+  for (var i=0; i<values.length; i++) {
+    var r = values[i];
+    var obj = {
+      id: String(r[0] || ""),
+      createdAt: r[1] ? String(r[1]) : "",
+      orderId: String(r[2] || ""),
+      type: String(r[3] || ""),
+      message: String(r[4] || ""),
+      archived: (r[5] === true || String(r[5]).toUpperCase() === "TRUE"),
+      archivedAt: r[6] ? String(r[6]) : ""
+    };
+    if (obj.archived) archived.push(obj);
+    else active.push(obj);
+  }
+
+  // aktív: createdAt csökkenő (legfrissebb elöl)
+  active.sort(function(a,b){
+    return (Date.parse(b.createdAt)||0) - (Date.parse(a.createdAt)||0);
+  });
+
+  // archivált: archivedAt csökkenő (legfrissebb archivált elöl)
+  archived.sort(function(a,b){
+    return (Date.parse(b.archivedAt)||0) - (Date.parse(a.archivedAt)||0);
+  });
+
+  return { active:active, archived:archived };
+}
+
+function generateNotificationsFromOrders_(orders) {
+  var sh = ensureNotifsSheet_();
+  var now = new Date();
+
+  // meglévő ID-k, hogy ne duplikáljunk
+  var existing = Object.create(null);
+  var lastRow = sh.getLastRow();
+  if (lastRow >= 2) {
+    var ids = sh.getRange(2,1,lastRow-1,1).getValues();
+    for (var i=0;i<ids.length;i++) {
+      var id = String(ids[i][0] || "");
+      if (id) existing[id] = true;
+    }
+  }
+
+  // segéd: ma YYYY-MM-DD
+  var todayStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd");
+
+  for (var k=0; k<orders.length; k++) {
+    var o = orders[k] || {};
+    var orderId = String(o.orderId || "").trim();
+    if (!orderId) continue;
+
+    var status = String(o.status || "").toUpperCase();
+    var statusTimeStr = String(o.statusTime || "");
+    var etaDate = String(o.etaDate || "").trim();              // "YYYY-MM-DD" (nálad így tárolod)
+    var etaUnknown = !!o.etaUnknown;
+
+    // opcionális: helyettesítő ETA (ha nálad van a payloadból és a sheetbe mented; ha nincs, akkor üresen marad)
+    var subEta = String(o.substituteEtaDate || "").trim();     // ha később hozzáadod a getOrdersForAdmin-hoz
+
+    // 1) ETA eljött: RENDELHETO / TERMEKHIANY
+    if ((status.indexOf("RENDEL") !== -1 || status.indexOf("TERMÉK") !== -1 || status.indexOf("TERMEK") !== -1) && etaDate) {
+      if (etaDate <= todayStr) {
+        var id1 = makeNotifId_(orderId, "ETA_DUE", etaDate);
+        if (!existing[id1]) {
+          existing[id1] = true;
+          sh.appendRow([
+            id1,
+            new Date(),
+            orderId,
+            "ETA_DUE",
+            "ETA eljött (" + etaDate + "). Állapot: " + status + ".",
+            false,
+            ""
+          ]);
+        }
+      }
+    }
+
+    // 2) Helyettesítő ETA eljött
+    if (subEta) {
+      if (subEta <= todayStr) {
+        var id2 = makeNotifId_(orderId, "SUB_ETA_DUE", subEta);
+        if (!existing[id2]) {
+          existing[id2] = true;
+          sh.appendRow([
+            id2,
+            new Date(),
+            orderId,
+            "SUB_ETA_DUE",
+            "Helyettesítő készítmény ETA eljött (" + subEta + ").",
+            false,
+            ""
+          ]);
+        }
+      }
+    }
+
+    // 3) AZONNAL ÁTVEHETŐ → következő munkanap 16:00 után jelzés, hogy aznap munkaidővégével “lejár”
+    if (status.indexOf("AZONNAL") !== -1) {
+      var statusTime = safeParseDate_(statusTimeStr);
+      if (statusTime) {
+        var expiryAt = nextBusinessDay16_(statusTime);
+        if (now.getTime() >= expiryAt.getTime()) {
+          var id3 = makeNotifId_(orderId, "AZONNAL_EXPIRES_TODAY", Utilities.formatDate(expiryAt, Session.getScriptTimeZone(), "yyyy-MM-dd"));
+          if (!existing[id3]) {
+            existing[id3] = true;
+            sh.appendRow([
+              id3,
+              new Date(),
+              orderId,
+              "AZONNAL_EXPIRES_TODAY",
+              "Azonnal átvehető státusz lejár ma munkaidő végével. Azonnal átvehetőre állítva: " + Utilities.formatDate(statusTime, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm"),
+              false,
+              ""
+            ]);
+          }
+        }
+      }
+    }
+  }
+}
+
+function makeNotifId_(orderId, type, extra) {
+  return String(orderId) + "|" + String(type) + "|" + String(extra || "");
+}
+
+function safeParseDate_(s) {
+  s = String(s || "").trim();
+  if (!s) return null;
+  var t = Date.parse(s);
+  if (!isNaN(t)) return new Date(t);
+  // fallback: ha Apps Script Date objectból stringify
+  try {
+    var d = new Date(s);
+    if (!isNaN(d.getTime())) return d;
+  } catch(e) {}
+  return null;
+}
+
+function nextBusinessDay16_(fromDate) {
+  // fromDate utáni következő munkanap 16:00 (HUN)
+  var d = new Date(fromDate.getTime());
+  d.setDate(d.getDate() + 1);
+
+  // 0=vas,6=szo → ugrunk hétfőig
+  while (d.getDay() === 0 || d.getDay() === 6) {
+    d.setDate(d.getDate() + 1);
+  }
+
+  d.setHours(16, 0, 0, 0);
+  return d;
 }
 
